@@ -1,0 +1,17 @@
+Apartados
+    - Home.
+        - Productos en oferta ó presentación de la web.
+    - Productos.
+        - Productos
+    - Cuenta ó historial de pagos.
+        - historial de pagos.
+            con fecha y hora.
+    - Perfil.
+        - Nombre
+        - Dui
+        - Fecha de nacimiento
+        - Dirección
+
+        - Otros apartados
+            - Pagos
+            - Producto a pagar
