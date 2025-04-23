@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect
 
 app = Flask(__name__)
 
@@ -10,6 +10,13 @@ def inicio():
 def pene():
     return render_template("About.html")
 
+@app.route("/register")
+def register():
+    return render_template("register.html") 
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    return redirect("/")
 
 
 

@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Feria{% endblock %}</title>
+    <title>{% block title %}GestorPlus{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/css.css') }}">
 </head>
 <body>
     <header>
         <nav class="navbar">
+            <li class="register"><a href="/register">Registrarse</a></li>
             <ul>
-                <li class="register"><a href="/register">Registrarse</a></li>
-                <li><a href="/">Home</a></li>
-                <li><a href="/About">About</a></li>
-                <li><a href="">Contact</a></li>
+    
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/About">Acerca</a></li>
+                <li><a href="">Contacto</a></li>
             </ul>
         </nav>
     </header>

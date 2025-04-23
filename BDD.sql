@@ -1,4 +1,4 @@
-CREATE TABLE rango (
+    CREATE TABLE rango (
     id_rango INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20) -- Ej: 'Junior', 'Senior', 'Admin'
 );
