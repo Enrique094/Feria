@@ -1,47 +1,23 @@
-
-CREATE TABLE vendedor(
-id_vende INT AUTO_INCREMENT PRIMARY KEY,
-nombre VARCHAR (20),
-apellido VARCHAR (20),
-tel INT (8)
-); 
-
 CREATE TABLE rango (
     id_rango INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20) -- Ej: 'Junior', 'Senior', 'Admin'
 );
 
-CREATE TABLE cliente(
-id_cliente INT AUTO_INCREMENT PRIMARY KEY,
-nombre VARCHAR (20),
-apellido VARCHAR (20),
-tel INT (8),
-dui INT (9),
-correo VARCHAR (30),
-direccion VARCHAR (50)
-);
 CREATE TABLE vendedor (
     id_vende INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20),
     apellido VARCHAR(20),
-    tel INT(8),
+    tel VARCHAR(15),
     id_rango INT,
     FOREIGN KEY (id_rango) REFERENCES rango(id_rango)
-);
-
-CREATE TABLE product(
-id_product INT AUTO_INCREMENT PRIMARY KEY,
-nombre VARCHAR (30),
-descripcion VARCHAR (50), 
-precio INT (10)
 );
 
 CREATE TABLE cliente (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20),
     apellido VARCHAR(20),
-    tel INT(8),
-    dui INT(9),
+    tel VARCHAR(15),
+    dui VARCHAR(10),
     correo VARCHAR(30),
     direccion VARCHAR(50)
 );
@@ -50,7 +26,7 @@ CREATE TABLE product (
     id_product INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(30),
     descripcion VARCHAR(50), 
-    precio INT(10) -- En centavos
+    precio INT -- En centavos
 );
 
 CREATE TABLE factura (
