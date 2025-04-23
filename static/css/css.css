@@ -1,11 +1,106 @@
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
 
-main{
+main {
     width: 100%;
     height: 100vh;
+}
+
+.Info {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-direction: column;
+}
+
+.Info-Container {
+    width: 100%;
+    height: 100vh;
+}
+
+.Info-Container .Parrafo {
+    width: 90%;
+    margin: 15px auto;
+    padding: 20px;
+    font-size: 20px;
+    text-wrap: wrap;
+}
+
+.Info-About {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-direction: column;
+}
+
+.Info-About .Parrafo {
+    width: 90%;
+    margin: 15px auto;
+    padding: 20px;
+    font-size: 20px;
+    text-wrap: wrap;
+}
+
+.Info {
+    animation: fadeIn 5s;
+    font-size: 30px;
+    margin: 10px auto;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+
+}
+
+.navbar {
+    width: 100%;
+    height: 50px;
+    background-color: #333;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    justify-self: flex-end;
+    margin-right: 20px;
+}
+
+.navbar a {
+    text-decoration: none;
+    color: white;
+    font-size: 20px;
+}
+
+.navbar ul li {
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.navbar ul li:hover {
+    color: #ccc;
+}
+
+.register{
+    display: flex;
+    justify-content: flex-start;
 }

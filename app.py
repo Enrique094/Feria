@@ -6,9 +6,11 @@ app = Flask(__name__)
 def inicio():
     return render_template("index.html")
 
-@app.route("/Home")
+@app.route("/About")
 def pene():
-    return render_template("Home.html")
+    return render_template("About.html")
+
+
 
 
 
