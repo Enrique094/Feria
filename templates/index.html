@@ -1,6 +1,11 @@
-{% extends "layout.html" %}
-
-{% block content %}
-    <h1>Esta es mi primera página con Flask 😎</h1>
-    <p></p>
-{% endblock %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Primera Web con Flask</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>¡Hola, Flask!</h1>
+    <p>Esta es mi primera página web con Python y Flask.</p>
+</body>
+</html>
