@@ -12,6 +12,17 @@ CREATE TABLE vendedor (
     FOREIGN KEY (id_rango) REFERENCES rango(id_rango)
 );
 
+
+-- Junten User y cliente en una sola tabla, y añadan un campo que indique si es cliente o vendedor.
+-- Tabla de usuarios
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100),
+    correo VARCHAR(100) UNIQUE,
+    contraseña VARCHAR(255),
+    rango VARCHAR(50) DEFAULT 'User',
+);
+
 CREATE TABLE cliente (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20),
