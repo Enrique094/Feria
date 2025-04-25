@@ -4,11 +4,8 @@ from Funciones import Conexion
 app = Flask(__name__)
 app.secret_key = 'Quemen el ina'  # Necesario para usar sesiones
 
-@app.route("/")
-def inicio():
-    return render_template("index.html")
-
 @app.route("/About")
+@Conexion.login_requerido
 def pene():
     return render_template("About.html")
 
@@ -36,7 +33,7 @@ def logout():
 @Conexion.login_requerido
 def home():
     nombre_usuario = session.get('nombre')  # Asegúrate de que 'nombre' esté guardado en la sesión
-    return render_template('home.html', nombre_usuario=nombre_usuario)
+    return render_template('index.html', nombre_usuario=nombre_usuario)
 
 @app.route('/')
 @Conexion.login_requerido

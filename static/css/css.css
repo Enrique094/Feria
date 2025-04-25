@@ -73,7 +73,7 @@ main {
     height: 50px;
     background-color: #333;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
 }
 
