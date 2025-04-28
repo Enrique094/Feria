@@ -1,4 +1,4 @@
-    CREATE TABLE rango (
+CREATE TABLE rango (
     id_rango INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20) -- Ej: 'Junior', 'Senior', 'Admin'
 );
@@ -21,6 +21,7 @@ CREATE TABLE usuarios (
     correo VARCHAR(100) UNIQUE,
     contraseña VARCHAR(255),
     rango VARCHAR(50) DEFAULT 'User',
+    estado TINYINT(1) DEFAULT 1, 
 );
 
 CREATE TABLE cliente (

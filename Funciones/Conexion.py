@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',  # Deja en blanco si no has establecido una contraseña
-        database='Pruebas' # Cambia 'Pruebas' por el nombre de tu base de datos
+        database='Gestor' # Cambia 'Pruebas' por el nombre de tu base de datos
     )
     return conn
 
@@ -25,7 +25,7 @@ def login(Correo, Contraseña):
         conn = get_connection()
         with conn.cursor() as cursor:
             # Comparar la contraseña en texto plano con la base de datos
-            cursor.execute("SELECT * FROM usuarios WHERE correo=%s AND contraseña=%s", (Correo, Contraseña))
+            cursor.execute("SELECT * FROM usuarios WHERE correo=%s AND contraseña=%s AND estado=1", (Correo, Contraseña))
             user = cursor.fetchone()
         conn.close()
 
@@ -34,13 +34,14 @@ def login(Correo, Contraseña):
             session['user_id'] = user[0]   # ID
             session['nombre'] = user[1]    # Nombre
             session['rango'] = user[4]     # Rango (si está en la 5ta columna)
+            session['estado'] = user[5]     # Estado (si está en la 6ta columna)
             return redirect('/home')
         else:
             return redirect('/login')  # Puedes usar flash() para mensaje de error
 
     return render_template('login.html')
 
-def register(Nombre, Correo, Contraseña):
+def register(Nombre, Correo, Contraseña, rango):
     if request.method == 'POST':
         conn = get_connection()
         with conn.cursor() as cursor:
@@ -51,8 +52,8 @@ def register(Nombre, Correo, Contraseña):
                 return redirect('/login')  # El correo ya está registrado
 
             # Insertar nuevo usuario
-            cursor.execute("INSERT INTO usuarios (nombre, correo, contraseña, rango) VALUES (%s, %s, %s, %s)",
-                           (Nombre, Correo, Contraseña, 'User'))
+            cursor.execute("INSERT INTO usuarios (nombre, correo, contraseña, rango, estado) VALUES (%s, %s, %s, %s, %s)",
+                           (Nombre, Correo, Contraseña, 'User', 1))
             conn.commit()
         conn.close()
 

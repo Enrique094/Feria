@@ -20,7 +20,8 @@ def register():
     nombre = request.form.get('nombre')
     correo = request.form.get('correo')
     contraseña = request.form.get('contraseña')
-    return Conexion.register(nombre, correo, contraseña)
+    rango = request.form.get('rango')
+    return Conexion.register(nombre, correo, contraseña, rango)
 
 @app.route('/logout')
 @Conexion.login_requerido
