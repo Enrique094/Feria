@@ -41,7 +41,29 @@ def login(Correo, Contraseña):
 
     return render_template('login.html')
 
-def register(Nombre, Correo, Contraseña, rango):
+
+def Productos(nombre, descripcion, precio, imagen, cantidad, categoria):
+    if request.method == 'POST':
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            # Insertar nuevo producto en la base de datos
+            cursor.execute("""
+                INSERT INTO productos (nombre, descripcion, precio, imagen, cantidad, categoria) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (nombre, descripcion, precio, imagen, cantidad, categoria))
+            conn.commit()
+        conn.close()
+        return {"message": "Producto creado exitosamente"}
+    
+    elif request.method == 'GET':
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM productos WHERE estado=1")
+            productos = cursor.fetchall()
+        conn.close()
+        return productos
+
+def register(Nombre, Correo, Contraseña, id_rango):
     if request.method == 'POST':
         conn = get_connection()
         with conn.cursor() as cursor:
@@ -52,8 +74,8 @@ def register(Nombre, Correo, Contraseña, rango):
                 return redirect('/login')  # El correo ya está registrado
 
             # Insertar nuevo usuario
-            cursor.execute("INSERT INTO usuarios (nombre, correo, contraseña, rango, estado) VALUES (%s, %s, %s, %s, %s)",
-                           (Nombre, Correo, Contraseña, 'User', 1))
+            cursor.execute("INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado) VALUES (%s, %s, %s, %s, %s)",
+                        (Nombre, Correo, Contraseña, id_rango, 1))
             conn.commit()
         conn.close()
 
