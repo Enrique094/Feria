@@ -94,6 +94,13 @@ def productos():
 
             conn.commit()
             flash("✅ Producto creado exitosamente")
+            nombre = ''
+            descripcion = ' '
+            precio = ' ' # es INT en tu tabla
+            stock = ' ' # aquí lo llamas stock
+            categoria = ' '
+            imagen_file = request.files['imagen']
+
         except Exception as e:
             flash(f"❌ Error al insertar producto: {str(e)}")
         finally:
@@ -135,10 +142,39 @@ def obtener_imagen(producto_id):
     conn.close()
 
     if result and result[0]:
-        return send_file(io.BytesIO(result[0]), mimetype='image/jpeg')
+        return send_file(
+            io.BytesIO(result[0]), 
+            mimetype='image/jpeg')
     else:
         # Imagen no disponible
         return '', 204  # No Content
+
+@app.route('/agregar_categoria', methods=['POST'])
+def agregar_categoria():
+    nombre = request.form.get('nombre_categoria')
+    descripcion = request.form.get('descripcion_categoria')
+
+    if not nombre:
+        flash("❌ El nombre de la categoría es obligatorio.")
+        return redirect(url_for('productos'))
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO categoria (nombre, descripcion) VALUES (%s, %s)", (nombre, descripcion))
+        conn.commit()
+        flash("✅ Categoría agregada exitosamente.")
+    except Exception as e:
+        flash(f"❌ Error al agregar categoría: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    return redirect(url_for('productos'))
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

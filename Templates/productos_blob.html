@@ -1,8 +1,17 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h1>Registrar Producto</h1>
+
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/productos.css') }}">
+</head>
+<section class="Producto">
+
+<div class="Formulario" style="width: 50%; align-items: center; justify-content: center; display: flex; flex-direction: column;"> 
+
+
     <form action="{{ url_for('productos') }}" method="POST" enctype="multipart/form-data">
+      <h1>Registrar Producto</h1>
         <input type="text" name="nombre" placeholder="Nombre" required><br>
         <input type="text" name="descripcion" placeholder="Descripción" required><br>
         <input type="number" name="precio" step="0.01" placeholder="Precio" required><br>
@@ -30,13 +39,44 @@
       {% endif %}
     {% endwith %}
 
-    <h2>Productos Activos</h2>
+</div>
+
+<div style="width: 50%; height: 80%; display: flex; flex-direction: column; align-items: center; overflow-y: scroll;">
+
+    <h2>Productos almacenados</h2>
     <ul>
         {% for p in productos %}
             <li>
                 <strong>{{ p[1] }}</strong> - {{ p[2] }} - ${{ p[3] }}<br>
-                
+                <img class="img_product" src="{{ url_for('obtener_imagen', producto_id=p[0]) }}" alt="{{ p[1] }}"  width="120" height="120" >
             </li>
         {% endfor %}
     </ul>
+</div>
+</section>
+
+<div style="display: flex; justify-content: flex-end; width: 100%;">
+  <button onclick="toggleCategoriaForm()" type="button" style="margin: 10px; text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">➕ Agregar Categoría</button>
+</div>
+
+
+<section class="Categoria">
+    <div id="categoriaForm" style="display: none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 20px;">
+    <h2>Agregar Nueva Categoría</h2>
+    <form action="{{ url_for('agregar_categoria') }}" method="POST">
+        <input type="text" name="nombre_categoria" placeholder="Nombre de categoría" required><br>
+        <input type="text" name="descripcion_categoria" placeholder="Descripción" required><br>
+        <button type="submit">Agregar Categoría</button>
+    </form>
+  </div>
+</section>
+
+
+
+<script>
+    function toggleCategoriaForm() {
+        var form = document.getElementById('categoriaForm');
+        form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+    }
+</script>
 {% endblock %}

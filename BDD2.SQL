@@ -37,7 +37,7 @@ CREATE TABLE cliente (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20),
     apellido VARCHAR(20),
-    id_rango VARCHAR(),
+    id_rango INT,
     tel VARCHAR(15),
     dui VARCHAR(10),
     correo VARCHAR(30),
