@@ -15,3 +15,6 @@ Apartados
         - Otros apartados
             - Pagos
             - Producto a pagar
+
+
+pip install -r requirements.txt

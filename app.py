@@ -140,9 +140,5 @@ def obtener_imagen(producto_id):
         # Imagen no disponible
         return '', 204  # No Content
 
-
-
-
-
 if __name__ == "__main__":
     app.run(debug=True)

@@ -37,10 +37,12 @@ CREATE TABLE cliente (
     id_cliente INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(20),
     apellido VARCHAR(20),
+    id_rango VARCHAR(),
     tel VARCHAR(15),
     dui VARCHAR(10),
     correo VARCHAR(30),
     direccion VARCHAR(50)
+    FOREIGN KEY (id_rango) REFERENCES rango(id_rango)
 );
 
 -- 6. Vendedor
@@ -83,6 +85,7 @@ CREATE TABLE producto (
     descripcion VARCHAR(50), 
     precio INT NOT NULL,
     imagen BOOLEAN DEFAULT 0, 
+    imagen_blob LONGBLOB,
     stock INT DEFAULT 0, 
     id_catego INT NOT NULL,
     FOREIGN KEY (id_catego) REFERENCES categoria(id_categoria)
