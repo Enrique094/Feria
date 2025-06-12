@@ -1,16 +1,19 @@
-# hola
+# Agregar a la BDD
 
-ajsdhkajhsdkajhds
+- INSERT INTO rango (nombre) VALUES
+('Administrador'),
+('Cliente'),
+('Vendedor'),
+('Cobrador');
 
-- ajsdjshda
 
-> akjsdhaskjdhakjsdhdajs
-asd,jbasdkjbdasnkbd \n aksjhdjkasda
+
+>  
 
 
 
 `
 
-    hola = 234
+
 
 `
