@@ -131,6 +131,24 @@ def productos():
 
     return render_template('productos_blob.html', productos=productos, categorias=categorias)
 
+@app.route('/mostrar_productos')
+@Conexion.login_requerido
+def mostrar_productos():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_product, nombre, descripcion, precio, stock FROM producto")
+        productos = cursor.fetchall()
+    except Exception as e:
+        flash(f"❌ Error al obtener productos: {str(e)}")
+        productos = []
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    return render_template("mostrar_productos.html", productos=productos)
+
 
 @app.route('/imagen/<int:producto_id>')
 def obtener_imagen(producto_id):
