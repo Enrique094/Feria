@@ -30,11 +30,29 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    nombre = request.form.get('nombre')
-    correo = request.form.get('correo')
-    contraseña = request.form.get('contraseña')
-    id_rango = request.form.get('id_rango')
-    return Conexion.register(nombre, correo, contraseña, id_rango)
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        correo = request.form.get('correo')
+        contraseña = request.form.get('contraseña')
+        id_rango = request.form.get('rango')  # Asegúrate que coincide con el atributo `name` en tu select
+        return Conexion.register(nombre, correo, contraseña, id_rango)
+
+    # Si es GET, obtenemos los rangos de la tabla
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_rango, nombre FROM rango")
+        rangos = cursor.fetchall()
+    except Exception as e:
+        rangos = []
+        flash(f"❌ Error al obtener rangos: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    return render_template("register.html", rangos=rangos)
 
 @app.route('/logout')
 @Conexion.login_requerido

@@ -12,7 +12,9 @@
             <li>
                 <strong>{{ p[1] }}</strong> - {{ p[2] }} - ${{ p[3] }}<br>
                 <img class="img_product" src="{{ url_for('obtener_imagen', producto_id=p[0]) }}" alt="{{ p[1] }}" width="120" height="120">
+                
             </li>
+            
         {% endfor %}
     </ul>
 </section>

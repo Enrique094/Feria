@@ -72,6 +72,66 @@
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* ----- CATEGORÍA ----- */
+.Categoria {
+    width: auto;
+    height: auto;
+    text-align: center;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.Categoria h2 {
+    padding: 20px;
+    text-align: center;
+}
+
+.Categoria form {
+    width: 100%;
+    height: 60%;
+    box-sizing: border-box;
+    border-radius: 10px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+    align-items: center;
+}
+
+.Categoria input,
+.Categoria select,
+.Categoria button {
+    width: 65%;
+    height: 40px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    padding-left: 5px;
+}
+
+.Categoria input {
+    padding: 10px;
+    outline: none;
+    border: none;
+    background-color: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.Categoria select {
+    padding: 5px;
+    border: none;
+    cursor: pointer;
+    color: #000;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+}
+
+.Categoria button {
+    width: 175px;
+    height: 30px;
+    background-color: #000;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 5px;
+}
+
 /* Imagen del producto */
 .img_product {
     text-align: center;

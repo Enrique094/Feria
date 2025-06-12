@@ -82,7 +82,7 @@ CREATE TABLE cobrador_cliente (
 CREATE TABLE producto (
     id_product INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(30),
-    descripcion VARCHAR(50), 
+    descripcion VARCHAR(150), 
     precio INT NOT NULL,
     imagen BOOLEAN DEFAULT 0, 
     imagen_blob LONGBLOB,

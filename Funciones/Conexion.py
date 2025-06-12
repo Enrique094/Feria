@@ -66,22 +66,54 @@ def Productos(nombre, descripcion, precio, imagen, cantidad, categoria):
 def register(Nombre, Correo, Contraseña, id_rango):
     if request.method == 'POST':
         conn = get_connection()
-        with conn.cursor() as cursor:
-            # Verificar si el correo ya existe
-            cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
-            existente = cursor.fetchone()
-            if existente:
-                return redirect('/login')  # El correo ya está registrado
+        cursor = conn.cursor()
 
-            # Insertar nuevo usuario
-            cursor.execute("INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado) VALUES (%s, %s, %s, %s, %s)",
-                        (Nombre, Correo, Contraseña, id_rango, 1))
-            conn.commit()
+        # Verificar si ya existe ese correo
+        cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
+        existente = cursor.fetchone()
+        if existente:
+            cursor.close()
+            conn.close()
+            return redirect('/login')  # El usuario ya está registrado
+
+        # Insertar en tabla usuarios
+        cursor.execute("""
+            INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (Nombre, Correo, Contraseña, id_rango, 1))
+        conn.commit()
+
+        # Obtener ID insertado
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        nuevo_id = cursor.fetchone()[0]
+
+        # Registrar en la tabla específica según el rango
+        if id_rango == '2':  # Cliente
+            cursor.execute("""
+                INSERT INTO cliente (nombre, apellido, id_rango, tel, dui, correo, direccion)
+                VALUES (%s, '', %s, '', '', %s, '')
+            """, (Nombre, id_rango, Correo))
+        
+        elif id_rango == '3':  # Vendedor
+            cursor.execute("""
+                INSERT INTO vendedor (nombre, apellido, tel, id_rango, id_zona)
+                VALUES (%s, '', '', %s, 1)
+            """, (Nombre, id_rango))
+        
+        elif id_rango == '4':  # Cobrador
+            cursor.execute("""
+                INSERT INTO cobrador (nombre, apellido, tel, id_rango, id_zona)
+                VALUES (%s, '', '', %s, 1)
+            """, (Nombre, id_rango))
+
+        conn.commit()
+        cursor.close()
         conn.close()
 
         return redirect('/login')
 
     return render_template('register.html')
+
 
 def logout():
     session.pop('user_id', None)
