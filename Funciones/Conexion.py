@@ -63,7 +63,7 @@ def Productos(nombre, descripcion, precio, imagen, cantidad, categoria):
         conn.close()
         return productos
 
-def register(Nombre, Correo, Contraseña, id_rango):
+def register(Nombre, Correo, Contraseña, id_rango=2):
     if request.method == 'POST':
         conn = get_connection()
         cursor = conn.cursor()

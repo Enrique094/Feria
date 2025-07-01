@@ -39,12 +39,17 @@
   </div>
 </section>
 
-<a href="{{ url_for('mostrar_productos') }}" style="margin: 10px; text-decoration: none; padding: 8px 12px; background-color: #28a745; color: white; border-radius: 5px;">📦 Ver Productos</a>
+<section>
+<div class="MostrarProductos">
 
+  <a href="{{ url_for('mostrar_productos') }}">Mostrar productos</a>
+  <button onclick="toggleCategoriaForm()" type="button">agregar_categoria</button>
 
-<div style="display: flex; justify-content: flex-end; width: 100%;">
-  <button onclick="toggleCategoriaForm()" type="button" style="margin: 10px; text-decoration: none; padding: 8px 12px; background-color: #007BFF; color: white; border-radius: 5px;">➕ Agregar Categoría</button>
 </div>
+</div>
+</section>
+
+
 
 <section class="Categoria">
   <div id="categoriaForm" style="display: none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 20px;">

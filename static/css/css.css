@@ -73,8 +73,15 @@ main {
     height: 50px;
     background-color: #333;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
+}
+
+.navbar strong{
+    color: white;
+    font-size: 30px;
+    margin-left: 20px;
+    
 }
 
 .navbar ul {

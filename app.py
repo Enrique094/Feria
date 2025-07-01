@@ -19,7 +19,7 @@ def get_connection():
 
 @app.route("/About")
 @Conexion.login_requerido
-def pene():
+def about():
     return render_template("About.html")
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -34,7 +34,7 @@ def register():
         nombre = request.form.get('nombre')
         correo = request.form.get('correo')
         contraseña = request.form.get('contraseña')
-        id_rango = request.form.get('rango')  # Asegúrate que coincide con el atributo `name` en tu select
+        id_rango = 2 # Asegúrate que coincide con el atributo `name` en tu select
         return Conexion.register(nombre, correo, contraseña, id_rango)
 
     # Si es GET, obtenemos los rangos de la tabla
