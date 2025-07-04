@@ -13,14 +13,17 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor'
+        database='Gestor2'
     )
     return conn
 
 @app.route("/About")
 @Conexion.login_requerido
 def about():
-    return render_template("About.html")
+    nombre_usuario = session.get('nombre')
+    return render_template("About.html", nombre_usuario=nombre_usuario)
+
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -77,6 +80,7 @@ def index():  # Corregido de inedx a index
 
 @app.route('/productos', methods=['GET', 'POST'])
 def productos():
+    nombre_usuario = session.get('nombre')
     conn = None
     cursor = None
     categorias = []
@@ -147,11 +151,12 @@ def productos():
         if conn:
             conn.close()
 
-    return render_template('productos_blob.html', productos=productos, categorias=categorias)
+    return render_template('productos_blob.html', productos=productos, categorias=categorias, nombre_usuario=nombre_usuario)
 
 @app.route('/mostrar_productos')
 @Conexion.login_requerido
 def mostrar_productos():
+    nombre_usuario = session.get('nombre')
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -165,7 +170,7 @@ def mostrar_productos():
             cursor.close()
         if conn:
             conn.close()
-    return render_template("mostrar_productos.html", productos=productos)
+    return render_template("mostrar_productos.html", productos=productos, nombre_usuario=nombre_usuario)
 
 
 @app.route('/imagen/<int:producto_id>')
@@ -187,6 +192,7 @@ def obtener_imagen(producto_id):
 
 @app.route('/agregar_categoria', methods=['POST'])
 def agregar_categoria():
+    nombre_usuario = session.get('nombre')
     nombre = request.form.get('nombre_categoria')
     descripcion = request.form.get('descripcion_categoria')
 

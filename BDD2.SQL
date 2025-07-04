@@ -41,7 +41,7 @@ CREATE TABLE cliente (
     tel VARCHAR(15),
     dui VARCHAR(10),
     correo VARCHAR(30),
-    direccion VARCHAR(50)
+    direccion VARCHAR(50),
     FOREIGN KEY (id_rango) REFERENCES rango(id_rango)
 );
 
@@ -82,7 +82,7 @@ CREATE TABLE cobrador_cliente (
 CREATE TABLE producto (
     id_product INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(30),
-    descripcion VARCHAR(150), 
+    descripcion VARCHAR(200), 
     precio INT NOT NULL,
     imagen BOOLEAN DEFAULT 0, 
     imagen_blob LONGBLOB,
