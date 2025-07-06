@@ -18,18 +18,14 @@
             <ul>
                 <li><a href="/">Inicio</a></li>
                 <li><a href="/About">Acerca</a></li>
-                <li><a href="">Contacto</a></li>
+                <li><a href="/productos">Productos</a></li>
+                <li><a href="/registrar_venta">Ventas</a></li>
                 {% if session.get('rango_nombre') == 'Administrador' %}
                     <li><a href="/productos">Productos</a></li>
                     <li><a href="/register_admin">Registrar Admin</a></li>
                 {% endif %}
 
                 <a href="/logout" style="color: red;">Cerrar session</a>
-
-                
-
-
-
             </ul>
 
         </nav>

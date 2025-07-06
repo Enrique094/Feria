@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect,request, session
 from Funciones import Conexion
+
 from flask import url_for, flash, send_file
 import mysql.connector
 import io
@@ -12,7 +13,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='gestor'
+        database='Gestor2'
     )
     return conn
 
@@ -259,6 +260,47 @@ def agregar_categoria():
             conn.close()
 
     return redirect(url_for('productos'))
+
+
+
+@app.route('/registrar_venta', methods=['GET', 'POST'])
+@Conexion.login_requerido
+def registrar_venta():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        id_cliente = request.form['cliente']
+        id_producto = request.form['producto']
+        id_categoria = request.form['categoria']
+        monto = request.form['monto']
+        id_vendedor = session['user_id']  # Suponiendo que el vendedor es el que está logueado
+
+        fecha = datetime.today().strftime('%Y-%m-%d')
+        hora = datetime.today().strftime('%H:%M:%S')
+
+        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
+        if exito:
+            flash("✅ Venta registrada correctamente.")
+        else:
+            flash("❌ Error al registrar la venta.")
+
+        return redirect(url_for('registrar_venta'))
+
+    # Para el formulario (GET)
+    cursor.execute("SELECT id_cliente, nombre FROM cliente")
+    clientes = cursor.fetchall()
+
+    cursor.execute("SELECT id_product, nombre FROM producto")
+    productos = cursor.fetchall()
+
+    cursor.execute("SELECT id_categoria, nombre FROM categoria")
+    categorias = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
+
 
 
 
