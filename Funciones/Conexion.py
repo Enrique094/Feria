@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',  # Deja en blanco si no has establecido una contraseña
-        database='Gestor2' # Cambia 'Pruebas' por el nombre de tu base de datos
+        database='gestor' # Cambia 'Pruebas' por el nombre de tu base de datos
     )
     return conn
 

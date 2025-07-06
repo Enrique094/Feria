@@ -13,7 +13,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor2'
+        database='gestor'
     )
     return conn
 
@@ -122,8 +122,7 @@ def index():  # Corregido de inedx a index
 
 
 @app.route('/productos', methods=['GET', 'POST'])
-@Conexion.login_requerido
-@admin_required  # Asegúrate de que solo los administradores puedan acceder a esta
+
 def productos():
     nombre_usuario = session.get('nombre')
     conn = None
@@ -300,9 +299,6 @@ def registrar_venta():
     cursor.close()
     conn.close()
     return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
-
-
-
 
 if __name__ == "__main__":
     app.run(debug=True)
