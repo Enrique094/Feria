@@ -12,7 +12,7 @@
             <strong>
                 <!--el nombre del usuario-->
                     Usuario:
-                    {{ nombre_usuario }}
+                    {{session.get('nombre', 'Invitado')}}
                
             </strong>
             <ul>
