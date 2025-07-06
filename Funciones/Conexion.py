@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',  # Deja en blanco si no has establecido una contraseña
-        database='Gestor2' # Cambia 'Pruebas' por el nombre de tu base de datos
+        database='Gestor' # Cambia 'Pruebas' por el nombre de tu base de datos
     )
     return conn
 
@@ -113,6 +113,25 @@ def register(Nombre, Correo, Contraseña, id_rango=2):
         return redirect('/login')
 
     return render_template('register.html')
+
+
+def registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO factura_venta (id_cliente, id_vende, id_product, id_catego, fecha, hora, monto)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (id_cliente, id_vendedor, id_producto, id_categoria, fecha, hora, monto))
+        conn.commit()
+        return True
+    except Exception as e:
+        print("Error al registrar venta:", e)
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 def logout():
