@@ -9,3 +9,10 @@ INSERT INTO rango (nombre) VALUES
 ('Cliente'),
 ('Vendedor'),
 ('Cobrador');
+
+
+# Apartador agregados
+- Asegurar que el id rango esten asignados del 1 al 4
+- Decorador agregado para verificar que el usuario es administrador
+# Modificar el registro de administrador
+- Agregar un campo de contraseña al formulario de registro de selecionar rango

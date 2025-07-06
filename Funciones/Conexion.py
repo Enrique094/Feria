@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',  # Deja en blanco si no has establecido una contraseña
-        database='Gestor2' # Cambia 'Pruebas' por el nombre de tu base de datos
+        database='gestor' # Cambia 'Pruebas' por el nombre de tu base de datos
     )
     return conn
 
@@ -24,22 +24,30 @@ def login(Correo, Contraseña):
     if request.method == 'POST':
         conn = get_connection()
         with conn.cursor() as cursor:
-            # Comparar la contraseña en texto plano con la base de datos
-            cursor.execute("SELECT * FROM usuarios WHERE correo=%s AND contraseña=%s AND estado=1", (Correo, Contraseña))
+            # Buscar al usuario junto con el nombre del rango
+            cursor.execute("""
+                SELECT u.id_usuario, u.nombre, u.correo, u.id_rango, u.estado, r.nombre 
+                FROM usuarios u 
+                JOIN rango r ON u.id_rango = r.id_rango 
+                WHERE u.correo=%s AND u.contraseña=%s AND u.estado=1
+            """, (Correo, Contraseña))
             user = cursor.fetchone()
         conn.close()
 
         if user:
             session.permanent = True
-            session['user_id'] = user[0]   # ID
-            session['nombre'] = user[1]    # Nombre
-            session['rango'] = user[4]     # Rango (si está en la 5ta columna)
-            session['estado'] = user[5]     # Estado (si está en la 6ta columna)
+            session['user_id'] = user[0]        # ID usuario
+            session['nombre'] = user[1]         # Nombre
+            session['rango'] = user[3]          # id_rango (por ejemplo: 1)
+            session['estado'] = user[4]         # Estado
+            session['rango_nombre'] = user[5]   # 'Administrador', 'Vendedor', etc.
             return redirect('/home')
         else:
-            return redirect('/login')  # Puedes usar flash() para mensaje de error
+            return redirect('/login')  # Puedes usar flash para error
 
     return render_template('login.html')
+
+
 
 
 def Productos(nombre, descripcion, precio, imagen, cantidad, categoria):
@@ -120,3 +128,4 @@ def logout():
     session.pop('nombre', None)
     session.pop('rango', None)
     return redirect('/login')
+

@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <title>Registrarse</title>
+</head>
+
+    <h2>Registro</h2>
+    <form action="/register" method="POST">
+        <input type="text" name="nombre" placeholder="Nombre completo" required />
+        <input type="email" name="correo" placeholder="Correo electrónico" required />
+        <input type="password" name="contraseña" placeholder="Contraseña" required minlength="8" min="8" />
+        <select name="rango" id="rango">
+            <option value="" disabled selected>Selecciona un rango</option>
+            {% for rango in rangos %}
+                <option value="{{ rango.id }}">{{ rango.nombre }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Registrarse</button>
+    </form>
+
+{% endblock %}

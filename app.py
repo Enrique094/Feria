@@ -1,6 +1,5 @@
 from flask import Flask, render_template, redirect,request, session
 from Funciones import Conexion
-
 from flask import url_for, flash, send_file
 import mysql.connector
 import io
@@ -13,9 +12,20 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor2'
+        database='gestor'
     )
     return conn
+
+# Decorador para requerir admin
+def admin_required(f):
+    def decorada(*args, **kwargs):
+        if 'rango' not in session or session['rango'] != 1:  # Asumiendo que el rango de admin es 1
+            flash("❌ Acceso denegado. Solo administradores pueden acceder a esta página.")
+            return redirect('/home')
+        return f(*args, **kwargs)
+    return decorada
+
+
 
 @app.route("/About")
 @Conexion.login_requerido
@@ -30,6 +40,8 @@ def login():
     correo = request.form.get('correo')
     contraseña = request.form.get('contraseña')
     return Conexion.login(correo, contraseña)
+
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -57,6 +69,36 @@ def register():
 
     return render_template("register.html", rangos=rangos)
 
+
+@app.route('/register_admin', methods=['GET', 'POST'])
+@Conexion.login_requerido
+@admin_required
+def register_admin():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        correo = request.form.get('correo')
+        contraseña = request.form.get('contraseña')
+        id_rango = request.form.get('rango')  # ← corregido para tomar el valor real
+
+        return Conexion.register(nombre, correo, contraseña, id_rango)
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)  # ← así puedes usar `rango.id_rango`
+        cursor.execute("SELECT id_rango, nombre FROM rango")
+        rangos = cursor.fetchall()
+    except Exception as e:
+        rangos = []
+        flash(f"❌ Error al obtener rangos: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    return render_template("register_admin.html", rangos=rangos)
+
+
 @app.route('/logout')
 @Conexion.login_requerido
 def logout():
@@ -79,6 +121,8 @@ def index():  # Corregido de inedx a index
 
 
 @app.route('/productos', methods=['GET', 'POST'])
+@Conexion.login_requerido
+@admin_required  # Asegúrate de que solo los administradores puedan acceder a esta
 def productos():
     nombre_usuario = session.get('nombre')
     conn = None
