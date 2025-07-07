@@ -147,8 +147,3 @@ def logout():
     session.pop('nombre', None)
     session.pop('rango', None)
     return redirect('/login')
-
-
-
-
-
