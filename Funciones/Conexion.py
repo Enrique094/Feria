@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',  # Deja en blanco si no has establecido una contraseña
-        database='Gestor2' # Cambia 'Pruebas' por el nombre de tu base de datos
+        database='Gestor' # Cambia 'Pruebas' por el nombre de tu base de datos
     )
     return conn
 
@@ -26,7 +26,7 @@ def login(Correo, Contraseña):
         with conn.cursor() as cursor:
             # Buscar al usuario junto con el nombre del rango
             cursor.execute("""
-                SELECT u.id_usuario, u.nombre, u.correo, u.id_rango, u.estado, r.nombre 
+                SELECT u.id, u.nombre, u.correo, u.id_rango, u.estado, r.nombre 
                 FROM usuarios u 
                 JOIN rango r ON u.id_rango = r.id_rango 
                 WHERE u.correo=%s AND u.contraseña=%s AND u.estado=1
@@ -147,4 +147,8 @@ def logout():
     session.pop('nombre', None)
     session.pop('rango', None)
     return redirect('/login')
+
+
+
+
 
