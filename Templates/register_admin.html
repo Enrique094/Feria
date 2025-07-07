@@ -3,21 +3,93 @@
 {% block content %}
 <head>
     <meta charset="UTF-8">
-    <title>Registrarse</title>
+    <title>Registrar Usuario</title>
+    <script>
+        function mostrarCampos() {
+            const valor = document.getElementById("rango").value;
+            document.getElementById("campos_cliente").style.display = valor == "2" ? "block" : "none";
+            document.getElementById("campos_vendedor").style.display = valor == "3" ? "block" : "none";
+            document.getElementById("campos_cobrador").style.display = valor == "4" ? "block" : "none";
+        }
+    </script>
 </head>
 
-    <h2>Registro</h2>
-    <form action="/register" method="POST">
-        <input type="text" name="nombre" placeholder="Nombre completo" required />
-        <input type="email" name="correo" placeholder="Correo electrónico" required />
-        <input type="password" name="contraseña" placeholder="Contraseña" required minlength="8" min="8" />
-        <select name="rango" id="rango">
-            <option value="" disabled selected>Selecciona un rango</option>
-            {% for rango in rangos %}
-                <option value="{{ rango.id }}">{{ rango.nombre }}</option>
+<h2>Registrar Usuario</h2>
+
+{% if request.args.get('registro') == 'exitoso' %}
+    <p style="color: green;">✅ Usuario registrado correctamente.</p>
+{% elif request.args.get('error') == 'correo_existente' %}
+    <p style="color: red;">❌ Este correo ya está registrado.</p>
+{% elif request.args.get('error') == 'fallo_en_registro' %}
+    <p style="color: red;">❌ Error inesperado al registrar usuario.</p>
+{% endif %}
+
+
+<form action="/register_admin" method="POST">
+    <input type="text" name="nombre" placeholder="Nombre completo" required />
+    <input type="email" name="correo" placeholder="Correo electrónico" required />
+    <input type="password" name="contraseña" placeholder="Contraseña" required minlength="8" />
+
+    <select name="rango" id="rango" onchange="mostrarCampos()" required>
+        <option value="" disabled selected>Selecciona un rango</option>
+        {% for rango in rangos %}
+            <option value="{{ rango.id_rango }}">{{ rango.nombre }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Cliente -->
+    <div id="campos_cliente" style="display: none;">
+        <h3>Datos de Cliente</h3>
+        <label for="cliente_apellido">Apellidos</label>
+        <input type="text" name="cliente_apellido" placeholder="Apellido" />
+
+        <label for="cliente_tel">Teléfono</label>
+        <input type="text" name="cliente_tel" placeholder="00000000" minlength="8" maxlength="9" />
+
+        <label for="cliente_dui">DUI</label>
+        <input type="text" name="cliente_dui" placeholder="00000000-0" maxlength="10" />
+
+        <label for="cliente_direccion">Dirección</label>
+        <input type="text" name="cliente_direccion" placeholder="San Salvador, Apopa" />
+    </div>
+
+    <!-- Vendedor -->
+    <div id="campos_vendedor" style="display: none;">
+        <h3>Datos de Vendedor</h3>
+        <label for="vendedor_apellido">Apellidos</label>
+        <input type="text" name="vendedor_apellido" placeholder="Apellido" />
+
+        <label for="vendedor_tel">Teléfono</label>
+        <input type="text" name="vendedor_tel" placeholder="00000000" minlength="8" maxlength="9" />
+
+        <label for="vendedor_zona">Zona</label>
+        <select name="vendedor_zona" id="zonas_vendedor">
+            <option value="" disabled selected>Selecciona una zona</option>
+            {% for zona in zonas %}
+                <option value="{{ zona.id_zona }}">{{ zona.nombre }}</option>
             {% endfor %}
         </select>
-        <button type="submit">Registrarse</button>
-    </form>
+    </div>
 
+    <!-- Cobrador -->
+    <div id="campos_cobrador" style="display: none;">
+        <h3>Datos de Cobrador</h3>
+        <label for="cobrador_apellido">Apellidos</label>
+        <input type="text" name="cobrador_apellido" placeholder="Apellido" />
+
+        <label for="cobrador_tel">Teléfono</label>
+        <input type="text" name="cobrador_tel" placeholder="00000000" minlength="8" maxlength="9" />
+
+        <label for="cobrador_zona">Zona</label>
+        <select name="cobrador_zona" id="zonas_cobrador">
+            <option value="" disabled selected>Selecciona una zona</option>
+            {% for zona in zonas %}
+                <option value="{{ zona.id_zona }}">{{ zona.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <br>
+    <button type="submit">Registrar</button>
+</form>
 {% endblock %}

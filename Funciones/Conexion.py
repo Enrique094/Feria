@@ -71,56 +71,86 @@ def Productos(nombre, descripcion, precio, imagen, cantidad, categoria):
         conn.close()
         return productos
 
-def register(Nombre, Correo, Contraseña, id_rango=2):
+from flask import redirect, session, render_template, request
+import mysql.connector
+
+def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
     if request.method == 'POST':
-        conn = get_connection()
-        cursor = conn.cursor()
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
 
-        # Verificar si ya existe ese correo
-        cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
-        existente = cursor.fetchone()
-        if existente:
-            cursor.close()
-            conn.close()
-            return redirect('/login')  # El usuario ya está registrado
+            # Convertir rango a entero si viene como string
+            id_rango = int(id_rango)
 
-        # Insertar en tabla usuarios
-        cursor.execute("""
-            INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (Nombre, Correo, Contraseña, id_rango, 1))
-        conn.commit()
+            # Verificar si el correo ya está en uso
+            cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
+            if cursor.fetchone():
+                return redirect('/register_admin?error=correo_existente')
 
-        # Obtener ID insertado
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        nuevo_id = cursor.fetchone()[0]
-
-        # Registrar en la tabla específica según el rango
-        if id_rango == '2':  # Cliente
+            # Insertar en tabla usuarios
             cursor.execute("""
-                INSERT INTO cliente (nombre, apellido, id_rango, tel, dui, correo, direccion)
-                VALUES (%s, '', %s, '', '', %s, '')
-            """, (Nombre, id_rango, Correo))
-        
-        elif id_rango == '3':  # Vendedor
-            cursor.execute("""
-                INSERT INTO vendedor (nombre, apellido, tel, id_rango, id_zona)
-                VALUES (%s, '', '', %s, 1)
-            """, (Nombre, id_rango))
-        
-        elif id_rango == '4':  # Cobrador
-            cursor.execute("""
-                INSERT INTO cobrador (nombre, apellido, tel, id_rango, id_zona)
-                VALUES (%s, '', '', %s, 1)
-            """, (Nombre, id_rango))
+                INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (Nombre, Correo, Contraseña, id_rango, 1))
+            conn.commit()
 
-        conn.commit()
-        cursor.close()
-        conn.close()
+            # Insertar en tabla correspondiente al rango
+            if datos_extra:
+                if id_rango == 2:  # Cliente
+                    cursor.execute("""
+                        INSERT INTO cliente (nombre, apellido, id_rango, tel, dui, correo, direccion)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        Nombre,
+                        datos_extra.get("cliente_apellido", ""),
+                        id_rango,
+                        datos_extra.get("cliente_tel", ""),
+                        datos_extra.get("cliente_dui", ""),
+                        Correo,
+                        datos_extra.get("cliente_direccion", "")
+                    ))
 
-        return redirect('/login')
+                elif id_rango == 3:  # Vendedor
+                    cursor.execute("""
+                        INSERT INTO vendedor (nombre, apellido, tel, id_rango, id_zona)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        Nombre,
+                        datos_extra.get("vendedor_apellido", ""),
+                        datos_extra.get("vendedor_tel", ""),
+                        id_rango,
+                        int(datos_extra.get("vendedor_zona", 1))
+                    ))
 
-    return render_template('register.html')
+                elif id_rango == 4:  # Cobrador
+                    cursor.execute("""
+                        INSERT INTO cobrador (nombre, apellido, tel, id_rango, id_zona)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (
+                        Nombre,
+                        datos_extra.get("cobrador_apellido", ""),
+                        datos_extra.get("cobrador_tel", ""),
+                        id_rango,
+                        int(datos_extra.get("cobrador_zona", 1))
+                    ))
+
+            conn.commit()
+            return redirect('/register_admin?registro=exitoso')
+
+        except Exception as e:
+            print("❌ Error al registrar usuario:", str(e))
+            return redirect('/register_admin?error=fallo_en_registro')
+
+        finally:
+            if cursor: cursor.close()
+            if conn: conn.close()
+
+    # Si es GET, solo devuelve el HTML
+    return render_template('register_admin.html')
+
+
+
 
 
 def registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora):

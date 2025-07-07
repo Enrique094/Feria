@@ -60,6 +60,8 @@ def register():
 
     return render_template("register.html", rangos=rangos)
 
+
+# Aquí está la ÚNICA función register_admin que debes mantener
 @app.route('/register_admin', methods=['GET', 'POST'])
 @Conexion.login_requerido
 @admin_required
@@ -69,7 +71,24 @@ def register_admin():
         correo = request.form.get('correo')
         contraseña = request.form.get('contraseña')
         id_rango = request.form.get('rango')
-        return Conexion.register(nombre, correo, contraseña, id_rango)
+
+        datos_extra = {
+            "cliente_apellido": request.form.get("cliente_apellido"),
+            "cliente_tel": request.form.get("cliente_tel"),
+            "cliente_dui": request.form.get("cliente_dui"),
+            "cliente_direccion": request.form.get("cliente_direccion"),
+
+            "vendedor_apellido": request.form.get("vendedor_apellido"),
+            "vendedor_tel": request.form.get("vendedor_tel"),
+            "vendedor_zona": request.form.get("vendedor_zona"),
+
+            "cobrador_apellido": request.form.get("cobrador_apellido"),
+            "cobrador_tel": request.form.get("cobrador_tel"),
+            "cobrador_zona": request.form.get("cobrador_zona")
+            
+        }
+
+        return Conexion.register(nombre, correo, contraseña, id_rango, datos_extra)
 
     try:
         conn = get_connection()
@@ -82,8 +101,20 @@ def register_admin():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+    
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_zona, nombre FROM zona")
+        zonas = cursor.fetchall()
+    except Exception as e:
+        zonas = []
+        flash(f"❌ Error al obtener rangos: {str(e)}")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
-    return render_template("register_admin.html", rangos=rangos)
+    return render_template("register_admin.html", rangos=rangos, zonas=zonas)
 
 @app.route('/logout')
 @Conexion.login_requerido
