@@ -2,11 +2,11 @@ from flask import Flask, render_template, redirect, request, session, url_for, f
 from Funciones import Conexion
 from datetime import datetime
 import mysql.connector
+from functools import wraps
 import io
-from functools import wraps  # ← IMPORTANTE para corregir el decorador
 
 app = Flask(__name__)
-app.secret_key = 'Quemen el ina'  # Necesario para usar sesiones
+app.secret_key = 'Quemen el ina'
 
 def get_connection():
     return mysql.connector.connect(
@@ -16,9 +16,8 @@ def get_connection():
         database='Gestor'
     )
 
-# ✅ Decorador corregido
 def admin_required(f):
-    @wraps(f)  # ← Corrige el error de duplicidad
+    @wraps(f)
     def decorada(*args, **kwargs):
         if 'rango' not in session or session['rango'] != 1:
             flash("❌ Acceso denegado. Solo administradores pueden acceder a esta página.")
@@ -26,6 +25,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorada
 
+# ------------------------
+# Rutas básicas
+# ------------------------
 @app.route("/About")
 @Conexion.login_requerido
 def about():
@@ -43,7 +45,7 @@ def register():
         nombre = request.form.get('nombre')
         correo = request.form.get('correo')
         contraseña = request.form.get('contraseña')
-        id_rango = 2  # Cobrador por defecto
+        id_rango = 2  # por defecto cobrador
         return Conexion.register(nombre, correo, contraseña, id_rango)
 
     try:
@@ -60,8 +62,6 @@ def register():
 
     return render_template("register.html", rangos=rangos)
 
-
-# Aquí está la ÚNICA función register_admin que debes mantener
 @app.route('/register_admin', methods=['GET', 'POST'])
 @Conexion.login_requerido
 @admin_required
@@ -71,23 +71,18 @@ def register_admin():
         correo = request.form.get('correo')
         contraseña = request.form.get('contraseña')
         id_rango = request.form.get('rango')
-
         datos_extra = {
             "cliente_apellido": request.form.get("cliente_apellido"),
             "cliente_tel": request.form.get("cliente_tel"),
             "cliente_dui": request.form.get("cliente_dui"),
             "cliente_direccion": request.form.get("cliente_direccion"),
-
             "vendedor_apellido": request.form.get("vendedor_apellido"),
             "vendedor_tel": request.form.get("vendedor_tel"),
             "vendedor_zona": request.form.get("vendedor_zona"),
-
             "cobrador_apellido": request.form.get("cobrador_apellido"),
             "cobrador_tel": request.form.get("cobrador_tel"),
             "cobrador_zona": request.form.get("cobrador_zona")
-            
         }
-
         return Conexion.register(nombre, correo, contraseña, id_rango, datos_extra)
 
     try:
@@ -101,7 +96,7 @@ def register_admin():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-    
+
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -109,7 +104,7 @@ def register_admin():
         zonas = cursor.fetchall()
     except Exception as e:
         zonas = []
-        flash(f"❌ Error al obtener rangos: {str(e)}")
+        flash(f"❌ Error al obtener zonas: {str(e)}")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
@@ -131,8 +126,92 @@ def home():
 @app.route('/')
 @Conexion.login_requerido
 def index():
-    return redirect('/home') if 'user_id' in session else redirect('/login')
+    return redirect('/home')
 
+# ------------------------
+# Ventas
+# ------------------------
+@app.route('/registrar_venta', methods=['GET', 'POST'])
+@Conexion.login_requerido
+def registrar_venta():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        id_cliente = request.form['cliente']
+        id_producto = request.form['producto']
+        id_categoria = request.form['categoria']
+        monto = request.form['monto']
+        id_vendedor = session['user_id']
+        fecha = datetime.today().strftime('%Y-%m-%d')
+        hora = datetime.today().strftime('%H:%M:%S')
+
+        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
+        flash("✅ Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
+        return redirect(url_for('registrar_venta'))
+
+    cursor.execute("SELECT id_cliente, nombre FROM cliente")
+    clientes = cursor.fetchall()
+
+    cursor.execute("SELECT id_product, nombre FROM producto")
+    productos = cursor.fetchall()
+
+    cursor.execute("SELECT id_categoria, nombre FROM categoria")
+    categorias = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
+
+# ------------------------
+# Cobros 
+# ------------------------
+@app.route('/gestionar_cobros', methods=['GET'])
+@Conexion.login_requerido
+def gestionar_cobros():
+    id_cobrador = session['user_id']
+    clientes = Conexion.obtener_clientes_de_cobrador(id_cobrador)
+
+    datos_cobros = []
+    for cliente in clientes:
+        pagos = Conexion.obtener_pagos_cliente(cliente['id'])
+        total_pagado = sum(p['monto'] for p in pagos)
+        productos = Conexion.obtener_productos_cliente(cliente['id'])
+        total_deuda = sum(p['precio'] for p in productos)
+
+        datos_cobros.append({
+            'cliente': cliente,
+            'productos': productos,
+            'total_deuda': total_deuda,
+            'total_pagado': total_pagado,
+            'restante': total_deuda - total_pagado
+        })
+
+    mostrar_productos = any(len(c['productos']) > 0 for c in datos_cobros)
+
+    return render_template(
+        'gestionar_cobros.html',
+        cobros=datos_cobros,
+        mostrar_productos=mostrar_productos
+    )
+
+
+
+@app.route('/abonar', methods=['POST'])
+@Conexion.login_requerido
+def abonar():
+    id_cliente = request.form['id_cliente']
+    monto = float(request.form['monto'])
+    id_cobrador = session['user_id']
+    Conexion.registrar_abono(id_cliente, id_cobrador, monto)
+    flash("✅ Abono registrado correctamente.")
+    return redirect('/gestionar_cobros')
+
+
+# ------------------------
+# Productos 
+# ------------------------
 @app.route('/productos', methods=['GET', 'POST'])
 @Conexion.login_requerido
 @admin_required
@@ -220,6 +299,9 @@ def agregar_categoria():
     nombre = request.form.get('nombre_categoria')
     descripcion = request.form.get('descripcion_categoria')
 
+    cursor = None
+    conn = None
+    
     if not nombre:
         flash("❌ El nombre de la categoría es obligatorio.")
         return redirect(url_for('productos'))
@@ -238,37 +320,9 @@ def agregar_categoria():
 
     return redirect(url_for('productos'))
 
-@app.route('/registrar_venta', methods=['GET', 'POST'])
-@Conexion.login_requerido
-def registrar_venta():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    if request.method == 'POST':
-        id_cliente = request.form['cliente']
-        id_producto = request.form['producto']
-        id_categoria = request.form['categoria']
-        monto = request.form['monto']
-        id_vendedor = session['user_id']
-        fecha = datetime.today().strftime('%Y-%m-%d')
-        hora = datetime.today().strftime('%H:%M:%S')
-
-        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
-        flash("✅ Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
-        return redirect(url_for('registrar_venta'))
-
-    cursor.execute("SELECT id_cliente, nombre FROM cliente")
-    clientes = cursor.fetchall()
-
-    cursor.execute("SELECT id_product, nombre FROM producto")
-    productos = cursor.fetchall()
-
-    cursor.execute("SELECT id_categoria, nombre FROM categoria")
-    categorias = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
-
+# ------------------------
+# Run
+# ------------------------
 if __name__ == "__main__":
+    print("Flask está listo para correr")
     app.run(debug=True)

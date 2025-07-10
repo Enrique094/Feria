@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2 style="text-align: center; margin-bottom: 30px;">Gestión de Cobros</h2>
+
+{% if cobros|length == 0 %}
+  <p style="text-align: center;">
+    No tienes clientes asignados o no hay cobros registrados.
+  </p>
+{% endif %}
+
+{% for cobro in cobros %}
+<div class="card" style="
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+">
+  <h3>Cliente: {{ cobro.cliente.nombre }}</h3>
+  <p><strong>Total deuda:</strong> ${{ '%.2f'|format(cobro.total_deuda) }}</p>
+  <p><strong>Total abonado:</strong> ${{ '%.2f'|format(cobro.total_pagado) }}</p>
+  <p><strong>Restante:</strong> ${{ '%.2f'|format(cobro.restante) }}</p>
+
+  {% if cobro.productos|length > 0 %}
+    <h4>Productos:</h4>
+    <ul>
+      {% for producto in cobro.productos %}
+        <li>{{ producto.nombre }} - ${{ '%.2f'|format(producto.precio) }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Este cliente no tiene productos registrados.</p>
+  {% endif %}
+
+  <form action="{{ url_for('abonar') }}" method="post" style="margin-top: 15px;">
+    <input type="hidden" name="id_cliente" value="{{ cobro.cliente.id }}">
+    <label for="monto_{{ cobro.cliente.id }}">Monto a abonar:</label><br>
+    <input type="number"
+           id="monto_{{ cobro.cliente.id }}"
+           name="monto"
+           step="0.01"
+           min="0.01"
+           max="{{ cobro.restante }}"
+           {% if cobro.restante <= 0 %}disabled{% endif %}
+           required>
+    <button type="submit" {% if cobro.restante <= 0 %}disabled{% endif %}>
+      Registrar abono
+    </button>
+  </form>
+</div>
+{% endfor %}
+
+{% endblock %}
