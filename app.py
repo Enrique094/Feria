@@ -20,7 +20,7 @@ def admin_required(f):
     @wraps(f)
     def decorada(*args, **kwargs):
         if 'rango' not in session or session['rango'] != 1:
-            flash("❌ Acceso denegado. Solo administradores pueden acceder a esta página.")
+            flash("Acceso denegado. Solo administradores pueden acceder a esta página.")
             return redirect('/home')
         return f(*args, **kwargs)
     return decorada
@@ -55,7 +55,7 @@ def register():
         rangos = cursor.fetchall()
     except Exception as e:
         rangos = []
-        flash(f"❌ Error al obtener rangos: {str(e)}")
+        flash(f" Error al obtener rangos: {str(e)}")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
@@ -92,7 +92,7 @@ def register_admin():
         rangos = cursor.fetchall()
     except Exception as e:
         rangos = []
-        flash(f"❌ Error al obtener rangos: {str(e)}")
+        flash(f"Error al obtener rangos: {str(e)}")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
@@ -104,7 +104,7 @@ def register_admin():
         zonas = cursor.fetchall()
     except Exception as e:
         zonas = []
-        flash(f"❌ Error al obtener zonas: {str(e)}")
+        flash(f"Error al obtener zonas: {str(e)}")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
@@ -147,7 +147,7 @@ def registrar_venta():
         hora = datetime.today().strftime('%H:%M:%S')
 
         exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
-        flash("✅ Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
+        flash("Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
         return redirect(url_for('registrar_venta'))
 
     cursor.execute("SELECT id_cliente, nombre FROM cliente")
@@ -205,7 +205,7 @@ def abonar():
     monto = float(request.form['monto'])
     id_cobrador = session['user_id']
     Conexion.registrar_abono(id_cliente, id_cobrador, monto)
-    flash("✅ Abono registrado correctamente.")
+    flash("Abono registrado correctamente.")
     return redirect('/gestionar_cobros')
 
 
@@ -232,7 +232,7 @@ def productos():
             cursor.execute("SELECT id_categoria FROM categoria WHERE nombre = %s", (categoria,))
             result = cursor.fetchone()
             if not result:
-                flash("❌ Categoría no válida")
+                flash("Categoría no válida")
                 return redirect(url_for('productos'))
 
             id_catego = result[0]
@@ -242,9 +242,9 @@ def productos():
             """, (nombre, descripcion, precio, 1 if imagen_blob else 0, stock, id_catego, imagen_blob))
 
             conn.commit()
-            flash("✅ Producto creado exitosamente")
+            flash("Producto creado exitosamente")
         except Exception as e:
-            flash(f"❌ Error al insertar producto: {str(e)}")
+            flash(f"Error al insertar producto: {str(e)}")
         finally:
             if cursor: cursor.close()
             if conn: conn.close()
@@ -257,7 +257,7 @@ def productos():
         cursor.execute("SELECT id_product, nombre, descripcion, precio, stock FROM producto")
         productos = cursor.fetchall()
     except Exception as e:
-        flash(f"❌ Error al obtener datos: {str(e)}")
+        flash(f"Error al obtener datos: {str(e)}")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
@@ -273,7 +273,7 @@ def mostrar_productos():
         cursor.execute("SELECT id_product, nombre, descripcion, precio, stock FROM producto")
         productos = cursor.fetchall()
     except Exception as e:
-        flash(f"❌ Error al obtener productos: {str(e)}")
+        flash(f"Error al obtener productos: {str(e)}")
         productos = []
     finally:
         if cursor: cursor.close()
@@ -303,7 +303,7 @@ def agregar_categoria():
     conn = None
     
     if not nombre:
-        flash("❌ El nombre de la categoría es obligatorio.")
+        flash("El nombre de la categoría es obligatorio.")
         return redirect(url_for('productos'))
 
     try:
@@ -311,9 +311,9 @@ def agregar_categoria():
         cursor = conn.cursor()
         cursor.execute("INSERT INTO categoria (nombre, descripcion) VALUES (%s, %s)", (nombre, descripcion))
         conn.commit()
-        flash("✅ Categoría agregada exitosamente.")
+        flash("Categoría agregada exitosamente.")
     except Exception as e:
-        flash(f"❌ Error al agregar categoría: {str(e)}")
+        flash(f"Error al agregar categoría: {str(e)}")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
