@@ -4,70 +4,13 @@
     box-sizing: border-box;
 }
 
-
-main {
-    width: 100%;
-    height: 100vh;
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    color: #333;
 }
 
-.Info {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    flex-direction: column;
-}
-
-.Info-Container {
-    margin-top: 175px;
-    width: 100%;
-    height: 100vh;
-}
-
-.Info-Container .Parrafo {
-    width: 90%;
-    margin: 15px auto;
-    padding: 20px;
-    font-size: 20px;
-    text-wrap: wrap;
-}
-
-.Info-About {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    flex-direction: column;
-}
-
-.Info-About .Parrafo {
-    width: 90%;
-    margin: 15px auto;
-    padding: 20px;
-    font-size: 20px;
-    text-wrap: wrap;
-}
-
-.Info {
-    animation: fadeIn 5s;
-    font-size: 30px;
-    margin: 10px auto;
-    text-align: center;
-}
-
-@keyframes fadeIn {
-    0% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
-
-}
-
+/* NAVBAR */
 .navbar {
     width: 100%;
     height: 50px;
@@ -75,47 +18,123 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 0 20px;
+    position: relative;
 }
 
-.navbar strong{
+.navbar strong {
     color: white;
-    font-size: 30px;
-    margin-left: 20px;
-    
+    font-size: 24px;
 }
 
+/* Menú - desktop */
 .navbar ul {
     list-style: none;
     display: flex;
     gap: 20px;
-    justify-self: flex-end;
-    margin-right: 20px;
-
 }
 
-.navbar a {
+.navbar ul li a {
     text-decoration: none;
     color: white;
-    font-size: 20px;
+    font-size: 18px;
+    transition: color 0.3s;
 }
 
+.navbar ul li a:hover {
+    color: #ccc;
+}
 
-.navbar ul li {
-    color: white;
-    font-size: 20px;
+/* Botón hamburguesa (oculto desktop) */
+.navbar .menu-toggle {
+    display: none;
+    flex-direction: column;
     cursor: pointer;
+    gap: 4px;
 }
 
-.register{
+.navbar .menu-toggle span {
+    background: white;
+    height: 3px;
+    width: 25px;
+    border-radius: 2px;
+}
+
+/* Responsive - móvil */
+@media screen and (max-width: 768px) {
+    .navbar ul {
+        flex-direction: column;
+        background-color: #333;
+        position: absolute;
+        top: 50px;
+        right: 0;
+        width: 200px;
+        display: none; /* oculto por defecto */
+        border-radius: 0 0 0 10px;
+        padding: 10px 0;
+    }
+
+    .navbar ul.active {
+        display: flex;
+    }
+
+    .navbar ul li {
+        margin: 10px 0;
+        text-align: right;
+        margin-right: 20px;
+    }
+
+    .navbar .menu-toggle {
+        display: flex;
+    }
+}
+
+/* MAIN */
+main {
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* INFO */
+.Info, .Info-About {
+    width: 100%;
+    min-height: 80vh;
     display: flex;
     justify-content: flex-start;
     align-items: center;
     flex-direction: column;
+    animation: fadeIn 2s;
+    text-align: center;
+    font-size: 30px;
+    margin-top: 20px;
+}
+
+.Info-Container, .Info-About .Parrafo, .Info-Container .Parrafo {
+    width: 90%;
+    margin: 15px auto;
+    padding: 20px;
+    font-size: 20px;
+}
+
+/* REGISTER */
+.register {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     padding-left: 20px;
 }
 
-
-.navbar ul li:hover {
-    color: #ccc;
+/* ANIMACIÓN */
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
+/* FOOTER opcional */
+footer {
+    background: #333;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+}

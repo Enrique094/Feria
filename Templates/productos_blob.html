@@ -7,53 +7,54 @@
 </head>
 
 <section class="Producto">
-  <div class="Formulario" style="width: 50%; align-items: center; justify-content: center; display: flex; flex-direction: column;"> 
+  <div class="Formulario" style="width: 50%; margin: auto; display: flex; flex-direction: column; align-items: center;">
     <form action="{{ url_for('productos') }}" method="POST" enctype="multipart/form-data">
       <h1>Registrar Producto</h1>
-        <input type="text" name="nombre" placeholder="Nombre" required><br>
-        <input type="text" name="descripcion" placeholder="Descripción" required><br>
-        <input type="number" name="precio" step="0.01" placeholder="Precio" required><br>
-        <input type="number" name="cantidad" placeholder="Cantidad" required><br>
 
+      <input type="text" name="nombre" placeholder="Nombre" required><br>
+      <input type="text" name="descripcion" placeholder="Descripción" required><br>
+      <input type="number" name="precio" step="0.01" placeholder="Precio" required><br>
+      <input type="number" name="cantidad" placeholder="Cantidad" required><br>
 
-        <label for="categoria">Categoría:</label><br>
-        <select name="categoria" id="categoria" required>
-            <option value="" disabled selected>Selecciona una categoría</option>
-            {% for cat in categorias %}
-                <option value="{{ cat }}">{{ cat }}</option>
-            {% endfor %}
-        </select><br><br>
+      <label for="categoria">Categoría:</label><br>
+      <select name="categoria" id="categoria" required>
+          <option value="" disabled selected>Selecciona una categoría</option>
+          {% for cat in categorias %}
+              <option value="{{ cat[0] }}">{{ cat[1] }}</option>
+          {% endfor %}
+      </select><br><br>
 
-        <input type="file" name="imagen" required><br><br>
-        <button type="submit">Guardar Producto</button>
+      <label for="imagen">Imagen del producto:</label><br>
+      <input type="file" name="imagen" accept="image/*"><br><br>
+
+      <button type="submit">Guardar Producto</button>
     </form>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-          {% for msg in messages %}
-            <li>{{ msg }}</li>
+    <!-- Mostrar mensajes flash -->
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+      {% if mensajes %}
+        <div style="margin-top: 15px; width: 100%;">
+          {% for categoria, mensaje in mensajes %}
+            <div class="alert alert-{{ categoria }}">
+              {{ mensaje }}
+            </div>
           {% endfor %}
-        </ul>
+        </div>
       {% endif %}
     {% endwith %}
   </div>
 </section>
 
 <section>
-<div class="MostrarProductos">
+  <div class="MostrarProductos" style="text-align: center; margin-top: 30px;">
+    <a href="{{ url_for('mostrar_productos') }}">🔍 Mostrar productos</a>
 
-  <a href="{{ url_for('mostrar_productos') }}">Mostrar productos</a>
-  <button onclick="toggleCategoriaForm()" type="button">agregar_categoria</button>
-
-</div>
-</div>
+    <button onclick="toggleCategoriaForm()" type="button" style="margin-left: 15px;">➕ Agregar categoría</button>
+  </div>
 </section>
 
-
-
 <section class="Categoria">
-  <div id="categoriaForm" style="display: none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 20px;">
+  <div id="categoriaForm" style="display: none; margin: 20px auto; padding-top: 20px; border-top: 1px solid #ccc; width: 50%;">
     <h2>Agregar Nueva Categoría</h2>
     <form action="{{ url_for('agregar_categoria') }}" method="POST">
         <input type="text" name="nombre_categoria" placeholder="Nombre de categoría" required><br>
@@ -65,8 +66,8 @@
 
 <script>
     function toggleCategoriaForm() {
-        var form = document.getElementById('categoriaForm');
-        form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+        const form = document.getElementById('categoriaForm');
+        form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
     }
 </script>
 

@@ -5,20 +5,23 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/productos.css') }}">
 </head>
 
-<section class="MostrarProductos" >
+<section class="MostrarProductos">
     <h2>Productos almacenados</h2>
-{% for p in productos %}
-    <div class="Produtos">
-        <div class="info_product">
-            <strong>{{ p[1] }}</strong>
-            <p>{{ p[2] }}</p>
-            <p>Precio: ${{ p[3] }}</p>
+    {% if productos %}
+        {% for p in productos %}
+        <div class="Producto">
+            <div class="info_product">
+                <strong>{{ p[1] }}</strong>
+                <p>{{ p[2] }}</p>
+                <p>Precio: ${{ p[3] }}</p>
+            </div>
+            <div class="img_product">
+                <img src="{{ url_for('obtener_imagen', producto_id=p[0]) }}" alt="{{ p[1] }}" width="120" height="120">
+            </div>
         </div>
-        <div class="img_product">
-             <img class="img_product" src="{{ url_for('obtener_imagen', producto_id=p[0]) }}" alt="{{ p[1] }}" width="120" height="120">
-        </div>
-        
-    </div>
-    {% endfor %}
+        {% endfor %}
+    {% else %}
+        <p>No hay productos almacenados todavía.</p>
+    {% endif %}
 </section>
 {% endblock %}

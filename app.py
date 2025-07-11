@@ -1,40 +1,37 @@
-from flask import Flask, render_template, redirect,request, session
+from flask import Flask, render_template, redirect, request, session, url_for, flash, send_file
 from Funciones import Conexion
 from datetime import datetime
-from flask import url_for, flash, send_file
 import mysql.connector
+from functools import wraps
 import io
 
 app = Flask(__name__)
-app.secret_key = 'Quemen el ina'  # Necesario para usar sesiones
+app.secret_key = 'Quemen el ina'
 
 def get_connection():
-    conn = mysql.connector.connect(
+    return mysql.connector.connect(
         host='localhost',
         user='root',
         password='',
-        database='gestor'
+        database='Gestor'
     )
-    return conn
 
-# Decorador para requerir admin
 def admin_required(f):
+    @wraps(f)
     def decorada(*args, **kwargs):
-        if 'rango' not in session or session['rango'] != 1:  # Asumiendo que el rango de admin es 1
+        if 'rango' not in session or session['rango'] != 1:
             flash("❌ Acceso denegado. Solo administradores pueden acceder a esta página.")
             return redirect('/home')
         return f(*args, **kwargs)
     return decorada
 
-
-
+# ------------------------
+# Rutas básicas
+# ------------------------
 @app.route("/About")
 @Conexion.login_requerido
 def about():
-    nombre_usuario = session.get('nombre')
-    return render_template("About.html", nombre_usuario=nombre_usuario)
-
-
+    return render_template("About.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -42,18 +39,15 @@ def login():
     contraseña = request.form.get('contraseña')
     return Conexion.login(correo, contraseña)
 
-
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         correo = request.form.get('correo')
         contraseña = request.form.get('contraseña')
-        id_rango = 2 # Asegúrate que coincide con el atributo `name` en tu select
+        id_rango = 2  # por defecto cobrador
         return Conexion.register(nombre, correo, contraseña, id_rango)
 
-    # Si es GET, obtenemos los rangos de la tabla
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -63,13 +57,10 @@ def register():
         rangos = []
         flash(f"❌ Error al obtener rangos: {str(e)}")
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
     return render_template("register.html", rangos=rangos)
-
 
 @app.route('/register_admin', methods=['GET', 'POST'])
 @Conexion.login_requerido
@@ -79,26 +70,46 @@ def register_admin():
         nombre = request.form.get('nombre')
         correo = request.form.get('correo')
         contraseña = request.form.get('contraseña')
-        id_rango = request.form.get('rango')  # ← corregido para tomar el valor real
-
-        return Conexion.register(nombre, correo, contraseña, id_rango)
+        id_rango = request.form.get('rango')
+        datos_extra = {
+            "cliente_apellido": request.form.get("cliente_apellido"),
+            "cliente_tel": request.form.get("cliente_tel"),
+            "cliente_dui": request.form.get("cliente_dui"),
+            "cliente_direccion": request.form.get("cliente_direccion"),
+            "vendedor_apellido": request.form.get("vendedor_apellido"),
+            "vendedor_tel": request.form.get("vendedor_tel"),
+            "vendedor_zona": request.form.get("vendedor_zona"),
+            "cobrador_apellido": request.form.get("cobrador_apellido"),
+            "cobrador_tel": request.form.get("cobrador_tel"),
+            "cobrador_zona": request.form.get("cobrador_zona")
+        }
+        return Conexion.register(nombre, correo, contraseña, id_rango, datos_extra)
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)  # ← así puedes usar `rango.id_rango`
+        cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT id_rango, nombre FROM rango")
         rangos = cursor.fetchall()
     except Exception as e:
         rangos = []
         flash(f"❌ Error al obtener rangos: {str(e)}")
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
-    return render_template("register_admin.html", rangos=rangos)
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id_zona, nombre FROM zona")
+        zonas = cursor.fetchall()
+    except Exception as e:
+        zonas = []
+        flash(f"❌ Error al obtener zonas: {str(e)}")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
+    return render_template("register_admin.html", rangos=rangos, zonas=zonas)
 
 @app.route('/logout')
 @Conexion.login_requerido
@@ -110,49 +121,121 @@ def logout():
 @app.route('/home')
 @Conexion.login_requerido
 def home():
-    nombre_usuario = session.get('nombre')  # Asegúrate de que 'nombre' esté guardado en la sesión
-    return render_template('index.html', nombre_usuario=nombre_usuario)
+    return render_template('index.html')
 
 @app.route('/')
 @Conexion.login_requerido
-def index():  # Corregido de inedx a index
-    if 'user_id' in session:
-        return redirect('/home')
-    return redirect('/login')
+def index():
+    return redirect('/home')
+
+# ------------------------
+# Ventas
+# ------------------------
+@app.route('/registrar_venta', methods=['GET', 'POST'])
+@Conexion.login_requerido
+def registrar_venta():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        id_cliente = request.form['cliente']
+        id_producto = request.form['producto']
+        id_categoria = request.form['categoria']
+        monto = request.form['monto']
+        id_vendedor = session['user_id']
+        fecha = datetime.today().strftime('%Y-%m-%d')
+        hora = datetime.today().strftime('%H:%M:%S')
+
+        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
+        flash("✅ Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
+        return redirect(url_for('registrar_venta'))
+
+    cursor.execute("SELECT id_cliente, nombre FROM cliente")
+    clientes = cursor.fetchall()
+
+    cursor.execute("SELECT id_product, nombre FROM producto")
+    productos = cursor.fetchall()
+
+    cursor.execute("SELECT id_categoria, nombre FROM categoria")
+    categorias = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
+
+# ------------------------
+# Cobros 
+# ------------------------
+@app.route('/gestionar_cobros', methods=['GET'])
+@Conexion.login_requerido
+def gestionar_cobros():
+    id_cobrador = session['user_id']
+    clientes = Conexion.obtener_clientes_de_cobrador(id_cobrador)
+
+    datos_cobros = []
+    for cliente in clientes:
+        pagos = Conexion.obtener_pagos_cliente(cliente['id'])
+        total_pagado = sum(p['monto'] for p in pagos)
+        productos = Conexion.obtener_productos_cliente(cliente['id'])
+        total_deuda = sum(p['precio'] for p in productos)
+
+        datos_cobros.append({
+            'cliente': cliente,
+            'productos': productos,
+            'total_deuda': total_deuda,
+            'total_pagado': total_pagado,
+            'restante': total_deuda - total_pagado
+        })
+
+    mostrar_productos = any(len(c['productos']) > 0 for c in datos_cobros)
+
+    return render_template(
+        'gestionar_cobros.html',
+        cobros=datos_cobros,
+        mostrar_productos=mostrar_productos
+    )
 
 
+
+@app.route('/abonar', methods=['POST'])
+@Conexion.login_requerido
+def abonar():
+    id_cliente = request.form['id_cliente']
+    monto = float(request.form['monto'])
+    id_cobrador = session['user_id']
+    Conexion.registrar_abono(id_cliente, id_cobrador, monto)
+    flash("✅ Abono registrado correctamente.")
+    return redirect('/gestionar_cobros')
+
+
+# ------------------------
+# Productos 
+# ------------------------
 @app.route('/productos', methods=['GET', 'POST'])
-
+@Conexion.login_requerido
+@admin_required
 def productos():
-    nombre_usuario = session.get('nombre')
-    conn = None
-    cursor = None
-    categorias = []
-    productos = []
-
+    categorias, productos = [], []
     if request.method == 'POST':
         nombre = request.form['nombre']
         descripcion = request.form['descripcion']
-        precio = int(request.form['precio'])  # es INT en tu tabla
-        stock = int(request.form['cantidad'])  # aquí lo llamas stock
+        precio = int(request.form['precio'])
+        stock = int(request.form['cantidad'])
         categoria = request.form['categoria']
-
         imagen_file = request.files['imagen']
         imagen_blob = imagen_file.read() if imagen_file and imagen_file.filename != '' else None
 
         try:
             conn = get_connection()
             cursor = conn.cursor()
-
-            # Buscar el id_categoria desde el nombre recibido
             cursor.execute("SELECT id_categoria FROM categoria WHERE nombre = %s", (categoria,))
             result = cursor.fetchone()
             if not result:
                 flash("❌ Categoría no válida")
                 return redirect(url_for('productos'))
-            id_catego = result[0]
 
-            # Insertar producto, incluyendo imagen_blob en la columna nueva
+            id_catego = result[0]
             cursor.execute("""
                 INSERT INTO producto (nombre, descripcion, precio, imagen, stock, id_catego, imagen_blob)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -160,47 +243,30 @@ def productos():
 
             conn.commit()
             flash("✅ Producto creado exitosamente")
-            nombre = ''
-            descripcion = ' '
-            precio = ' ' # es INT en tu tabla
-            stock = ' ' # aquí lo llamas stock
-            categoria = ' '
-            imagen_file = request.files['imagen']
-
         except Exception as e:
             flash(f"❌ Error al insertar producto: {str(e)}")
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+            if cursor: cursor.close()
+            if conn: conn.close()
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
-
         cursor.execute("SELECT nombre FROM categoria ORDER BY nombre")
         categorias = [row[0] for row in cursor.fetchall()]
-
-        cursor.execute("""
-            SELECT id_product, nombre, descripcion, precio, stock FROM producto WHERE 1
-        """)
+        cursor.execute("SELECT id_product, nombre, descripcion, precio, stock FROM producto")
         productos = cursor.fetchall()
-
     except Exception as e:
         flash(f"❌ Error al obtener datos: {str(e)}")
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
-    return render_template('productos_blob.html', productos=productos, categorias=categorias, nombre_usuario=nombre_usuario)
+    return render_template('productos_blob.html', productos=productos, categorias=categorias)
 
 @app.route('/mostrar_productos')
 @Conexion.login_requerido
 def mostrar_productos():
-    nombre_usuario = session.get('nombre')
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -210,12 +276,9 @@ def mostrar_productos():
         flash(f"❌ Error al obtener productos: {str(e)}")
         productos = []
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-    return render_template("mostrar_productos.html", productos=productos, nombre_usuario=nombre_usuario)
-
+        if cursor: cursor.close()
+        if conn: conn.close()
+    return render_template("mostrar_productos.html", productos=productos)
 
 @app.route('/imagen/<int:producto_id>')
 def obtener_imagen(producto_id):
@@ -227,19 +290,18 @@ def obtener_imagen(producto_id):
     conn.close()
 
     if result and result[0]:
-        return send_file(
-            io.BytesIO(result[0]), 
-            mimetype='image/jpeg')
+        return send_file(io.BytesIO(result[0]), mimetype='image/jpeg')
     else:
-        # Imagen no disponible
         return '', 204  # No Content
 
 @app.route('/agregar_categoria', methods=['POST'])
 def agregar_categoria():
-    nombre_usuario = session.get('nombre')
     nombre = request.form.get('nombre_categoria')
     descripcion = request.form.get('descripcion_categoria')
 
+    cursor = None
+    conn = None
+    
     if not nombre:
         flash("❌ El nombre de la categoría es obligatorio.")
         return redirect(url_for('productos'))
@@ -253,52 +315,14 @@ def agregar_categoria():
     except Exception as e:
         flash(f"❌ Error al agregar categoría: {str(e)}")
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
     return redirect(url_for('productos'))
 
-
-
-@app.route('/registrar_venta', methods=['GET', 'POST'])
-@Conexion.login_requerido
-def registrar_venta():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    if request.method == 'POST':
-        id_cliente = request.form['cliente']
-        id_producto = request.form['producto']
-        id_categoria = request.form['categoria']
-        monto = request.form['monto']
-        id_vendedor = session['user_id']  # Suponiendo que el vendedor es el que está logueado
-
-        fecha = datetime.today().strftime('%Y-%m-%d')
-        hora = datetime.today().strftime('%H:%M:%S')
-
-        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
-        if exito:
-            flash("✅ Venta registrada correctamente.")
-        else:
-            flash("❌ Error al registrar la venta.")
-
-        return redirect(url_for('registrar_venta'))
-
-    # Para el formulario (GET)
-    cursor.execute("SELECT id_cliente, nombre FROM cliente")
-    clientes = cursor.fetchall()
-
-    cursor.execute("SELECT id_product, nombre FROM producto")
-    productos = cursor.fetchall()
-
-    cursor.execute("SELECT id_categoria, nombre FROM categoria")
-    categorias = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
-
+# ------------------------
+# Run
+# ------------------------
 if __name__ == "__main__":
+    print("Flask está listo para correr")
     app.run(debug=True)
