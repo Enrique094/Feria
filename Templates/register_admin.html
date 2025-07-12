@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Registrar Usuario</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Admin_Usuarios.css') }}">
     <script>
         function mostrarCampos() {
             const valor = document.getElementById("rango").value;
@@ -92,4 +93,68 @@
     <br>
     <button type="submit">Registrar</button>
 </form>
+
+<hr><br>
+<h2>Usuarios registrados</h2>
+
+<input class="search" 
+  type="text"
+  id="searchInput"
+  onkeyup="filtrarUsuarios()"
+  placeholder="Buscar usuarios..."
+/>
+
+{% for user in users %}
+  <form action="/editar_usuario" method="POST" class="formulario_update" style="margin-bottom: 15px;">
+    <input type="hidden" name="user_id" value="{{ user.id }}" />
+    <input type="text" name="nombre" value="{{ user.nombre }}" required />
+    <input type="email" name="correo" value="{{ user.correo }}" required />
+
+    <select name="estado">
+        <option value="1" {% if user.estado == 1 %}selected{% endif %}>Activo</option>
+        <option value="0" {% if user.estado == 0 %}selected{% endif %}>Inactivo</option>
+    </select>
+
+    <select name="rango">
+        {% for rango in rangos %}
+            <option value="{{ rango.id_rango }}" {% if user.id_rango == rango.id_rango %}selected{% endif %}>
+                {{ rango.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Actualizar</button>
+    <a href="#" onclick="eliminarUsuario('{{ user.id }}')" class="btn-eliminar">Eliminar</a>
+  </form>
+{% endfor %}
+
+<script>
+  function eliminarUsuario(userId) {
+    if (confirm('¿Seguro que quieres eliminar este usuario?')) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `/eliminar_usuario/${userId}`;
+      document.body.appendChild(form);
+      form.submit();
+    }
+  }
+</script>
+<script>
+  function filtrarUsuarios() {
+    const termino = document.getElementById('searchInput').value.toLowerCase();
+    const formularios = document.querySelectorAll('.formulario_update');
+
+    formularios.forEach(form => {
+      const nombre = form.querySelector('input[name="nombre"]').value.toLowerCase();
+      const correo = form.querySelector('input[name="correo"]').value.toLowerCase();
+      if (nombre.includes(termino) || correo.includes(termino)) {
+        form.style.display = '';
+      } else {
+        form.style.display = 'none';
+      }
+    });
+  }
+</script>
+
+
 {% endblock %}

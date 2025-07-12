@@ -16,3 +16,7 @@ INSERT INTO rango (nombre) VALUES
 - Decorador agregado para verificar que el usuario es administrador
 # Modificar el registro de administrador
 - Agregar un campo de contraseña al formulario de registro de selecionar rango
+
+# Apartados por agregar
+- Triggers para la funcion del abono y el total de deuda del cliente
+- Triggers para la resta de stock de los productos
