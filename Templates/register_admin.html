@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Registrar Usuario</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/Admin_Usuarios.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/New_usuariosAdmin.css') }}">
     <script>
         function mostrarCampos() {
             const valor = document.getElementById("rango").value;
@@ -15,23 +16,22 @@
     </script>
 </head>
 
-<h2>Registrar Usuario</h2>
+<h2 class="titulo-registro">Registrar Usuario</h2>
 
 {% if request.args.get('registro') == 'exitoso' %}
-    <p style="color: green;">✅ Usuario registrado correctamente.</p>
+    <p class="mensaje-exito">✅ Usuario registrado correctamente.</p>
 {% elif request.args.get('error') == 'correo_existente' %}
-    <p style="color: red;">❌ Este correo ya está registrado.</p>
+    <p class="mensaje-error">❌ Este correo ya está registrado.</p>
 {% elif request.args.get('error') == 'fallo_en_registro' %}
-    <p style="color: red;">❌ Error inesperado al registrar usuario.</p>
+    <p class="mensaje-error">❌ Error inesperado al registrar usuario.</p>
 {% endif %}
 
+<form action="/register_admin" method="POST" class="registro-usuario">
+    <input class="input-registro" type="text" name="nombre" placeholder="Nombre completo" required />
+    <input class="input-registro" type="email" name="correo" placeholder="Correo electrónico" required />
+    <input class="input-registro" type="password" name="contraseña" placeholder="Contraseña" required minlength="8" />
 
-<form action="/register_admin" method="POST">
-    <input type="text" name="nombre" placeholder="Nombre completo" required />
-    <input type="email" name="correo" placeholder="Correo electrónico" required />
-    <input type="password" name="contraseña" placeholder="Contraseña" required minlength="8" />
-
-    <select name="rango" id="rango" onchange="mostrarCampos()" required>
+    <select class="select-registro" name="rango" id="rango" onchange="mostrarCampos()" required>
         <option value="" disabled selected>Selecciona un rango</option>
         {% for rango in rangos %}
             <option value="{{ rango.id_rango }}">{{ rango.nombre }}</option>
@@ -39,32 +39,27 @@
     </select>
 
     <!-- Cliente -->
-    <div id="campos_cliente" style="display: none;">
+    <div id="campos_cliente" class="campos-extra" style="display: none;">
         <h3>Datos de Cliente</h3>
-        <label for="cliente_apellido">Apellidos</label>
-        <input type="text" name="cliente_apellido" placeholder="Apellido" />
-
-        <label for="cliente_tel">Teléfono</label>
-        <input type="text" name="cliente_tel" placeholder="00000000" minlength="8" maxlength="9" />
-
-        <label for="cliente_dui">DUI</label>
-        <input type="text" name="cliente_dui" placeholder="00000000-0" maxlength="10" />
-
-        <label for="cliente_direccion">Dirección</label>
-        <input type="text" name="cliente_direccion" placeholder="San Salvador, Apopa" />
+        <label>Apellidos</label>
+        <input class="input-registro" type="text" name="cliente_apellido" placeholder="Apellido" />
+        <label>Teléfono</label>
+        <input class="input-registro" type="text" name="cliente_tel" placeholder="00000000" minlength="8" maxlength="9" />
+        <label>DUI</label>
+        <input class="input-registro" type="text" name="cliente_dui" placeholder="00000000-0" maxlength="10" />
+        <label>Dirección</label>
+        <input class="input-registro" type="text" name="cliente_direccion" placeholder="San Salvador, Apopa" />
     </div>
 
     <!-- Vendedor -->
-    <div id="campos_vendedor" style="display: none;">
+    <div id="campos_vendedor" class="campos-extra" style="display: none;">
         <h3>Datos de Vendedor</h3>
-        <label for="vendedor_apellido">Apellidos</label>
-        <input type="text" name="vendedor_apellido" placeholder="Apellido" />
-
-        <label for="vendedor_tel">Teléfono</label>
-        <input type="text" name="vendedor_tel" placeholder="00000000" minlength="8" maxlength="9" />
-
-        <label for="vendedor_zona">Zona</label>
-        <select name="vendedor_zona" id="zonas_vendedor">
+        <label>Apellidos</label>
+        <input class="input-registro" type="text" name="vendedor_apellido" placeholder="Apellido" />
+        <label>Teléfono</label>
+        <input class="input-registro" type="text" name="vendedor_tel" placeholder="00000000" minlength="8" maxlength="9" />
+        <label>Zona</label>
+        <select class="select-registro" name="vendedor_zona">
             <option value="" disabled selected>Selecciona una zona</option>
             {% for zona in zonas %}
                 <option value="{{ zona.id_zona }}">{{ zona.nombre }}</option>
@@ -73,16 +68,14 @@
     </div>
 
     <!-- Cobrador -->
-    <div id="campos_cobrador" style="display: none;">
+    <div id="campos_cobrador" class="campos-extra" style="display: none;">
         <h3>Datos de Cobrador</h3>
-        <label for="cobrador_apellido">Apellidos</label>
-        <input type="text" name="cobrador_apellido" placeholder="Apellido" />
-
-        <label for="cobrador_tel">Teléfono</label>
-        <input type="text" name="cobrador_tel" placeholder="00000000" minlength="8" maxlength="9" />
-
-        <label for="cobrador_zona">Zona</label>
-        <select name="cobrador_zona" id="zonas_cobrador">
+        <label>Apellidos</label>
+        <input class="input-registro" type="text" name="cobrador_apellido" placeholder="Apellido" />
+        <label>Teléfono</label>
+        <input class="input-registro" type="text" name="cobrador_tel" placeholder="00000000" minlength="8" maxlength="9" />
+        <label>Zona</label>
+        <select class="select-registro" name="cobrador_zona">
             <option value="" disabled selected>Selecciona una zona</option>
             {% for zona in zonas %}
                 <option value="{{ zona.id_zona }}">{{ zona.nombre }}</option>
@@ -90,10 +83,8 @@
         </select>
     </div>
 
-    <br>
-    <button type="submit">Registrar</button>
+    <button class="btn-registro" type="submit">Registrar</button>
 </form>
-
 <hr><br>
 <h2>Usuarios registrados</h2>
 
