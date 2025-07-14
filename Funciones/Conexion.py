@@ -145,14 +145,14 @@ def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
 # ------------------------
 # Registrar venta
 # ------------------------
-def registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora):
+def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora):
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO factura_venta (id_cliente, id_vende, id_product, id_catego, fecha, hora, monto)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (id_cliente, id_vendedor, id_producto, id_categoria, fecha, hora, monto))
+            INSERT INTO factura_venta (id_cliente, id_vende, id_product, fecha, hora)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_cliente, id_vendedor, id_producto, fecha, hora))
         conn.commit()
         cursor.close()
         conn.close()
@@ -255,3 +255,50 @@ def registrar_abono(id_cliente, id_cobrador, monto):
         conn.close()
     except Exception as e:
         print("❌ Error al registrar abono:", e)
+
+def registrar_abono(id_cliente, id_cobrador, monto):
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database='Gestor'
+    )
+    cursor = conn.cursor()
+
+    # Obtiene la factura más reciente del cliente
+    cursor.execute("""
+        SELECT id FROM factura_venta 
+        WHERE id_cliente = %s 
+        ORDER BY fecha DESC LIMIT 1
+    """, (id_cliente,))
+    factura = cursor.fetchone()
+    id_factura = factura[0] if factura else None
+
+    if id_factura:
+        cursor.execute("""
+            INSERT INTO abonos (id_cliente, id_cobrador, monto, id_factura)
+            VALUES (%s, %s, %s, %s)
+        """, (id_cliente, id_cobrador, monto, id_factura))
+        conn.commit()
+    
+    cursor.close()
+    conn.close()
+
+def obtener_historial_abonos(id_cliente):
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database='Gestor'
+    )
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT monto, fecha FROM abonos 
+        WHERE id_cliente = %s
+        ORDER BY fecha DESC
+    """, (id_cliente,))
+    historial = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return historial
+

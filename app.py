@@ -4,6 +4,11 @@ from datetime import datetime
 import mysql.connector
 from functools import wraps
 import io
+from Funciones import Conexion
+from Funciones import confi
+from Funciones.Conexion import obtener_historial_abonos
+
+
 
 app = Flask(__name__)
 app.secret_key = 'Quemen el ina'
@@ -66,6 +71,9 @@ def register():
 @Conexion.login_requerido
 @admin_required
 def register_admin():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         correo = request.form.get('correo')
@@ -83,33 +91,72 @@ def register_admin():
             "cobrador_tel": request.form.get("cobrador_tel"),
             "cobrador_zona": request.form.get("cobrador_zona")
         }
+        conn.close()
         return Conexion.register(nombre, correo, contraseña, id_rango, datos_extra)
 
     try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM usuarios")
+        users = cursor.fetchall()
+
         cursor.execute("SELECT id_rango, nombre FROM rango")
         rangos = cursor.fetchall()
-    except Exception as e:
-        rangos = []
-        flash(f"Error al obtener rangos: {str(e)}")
-    finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
 
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+
+
         cursor.execute("SELECT id_zona, nombre FROM zona")
         zonas = cursor.fetchall()
     except Exception as e:
-        zonas = []
-        flash(f"Error al obtener zonas: {str(e)}")
-    finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
 
-    return render_template("register_admin.html", rangos=rangos, zonas=zonas)
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template("register_admin.html", users=users, rangos=rangos, zonas=zonas)
+
+@app.route('/editar_usuario', methods=['GET', 'POST'])
+@Conexion.login_requerido
+@admin_required
+def editar_usuario():
+    user_id = request.form.get('user_id')
+    nombre = request.form.get('nombre')
+    correo = request.form.get('correo')
+    estado = request.form.get('estado')
+    id_rango = request.form.get('rango')
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE usuarios 
+            SET nombre=%s, correo=%s, estado=%s, id_rango=%s 
+            WHERE id=%s
+        """, (nombre, correo, estado, id_rango, user_id))
+        conn.commit()
+        flash("✅ Usuario actualizado", "success")
+    except Exception as e:
+        flash(f"❌ Error al actualizar: {str(e)}", "danger")
+    finally:
+        conn.close()
+
+    return redirect('/register_admin')
+
+@app.route('/eliminar_usuario/<int:user_id>', methods=['POST'])
+@Conexion.login_requerido
+@admin_required
+def eliminar_usuario(user_id):
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuarios WHERE id=%s", (user_id,))
+        conn.commit()
+        flash("🗑️ Usuario eliminado", "info")
+    except Exception as e:
+        flash(f"❌ Error al eliminar: {str(e)}", "danger")
+    finally:
+        conn.close()
+
+    return redirect('/register_admin')
+
 
 @app.route('/logout')
 @Conexion.login_requerido
@@ -140,14 +187,25 @@ def registrar_venta():
     if request.method == 'POST':
         id_cliente = request.form['cliente']
         id_producto = request.form['producto']
-        id_categoria = request.form['categoria']
-        monto = request.form['monto']
-        id_vendedor = session['user_id']
+        
+        # Obtener el id_vende asociado al usuario logueado (session['user_id'])
+        cursor.execute("""
+            SELECT id_vende FROM vendedor
+            WHERE nombre = (SELECT nombre FROM usuarios WHERE id = %s)
+            LIMIT 1
+        """, (session['user_id'],))
+        resultado = cursor.fetchone()
+
+        if resultado is None:
+            flash("❌ No se encontró un vendedor asociado al usuario actual.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for('registrar_venta'))
+
+        id_vendedor = resultado[0]
         fecha = datetime.today().strftime('%Y-%m-%d')
         hora = datetime.today().strftime('%H:%M:%S')
 
-        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
-        flash("Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
         return redirect(url_for('registrar_venta'))
 
     cursor.execute("SELECT id_cliente, nombre FROM cliente")
@@ -156,19 +214,15 @@ def registrar_venta():
     cursor.execute("SELECT id_product, nombre FROM producto")
     productos = cursor.fetchall()
 
-    cursor.execute("SELECT id_categoria, nombre FROM categoria")
-    categorias = cursor.fetchall()
-
     cursor.close()
     conn.close()
 
-    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
+    return render_template("registrar_venta.html", clientes=clientes, productos=productos)
 
 # ------------------------
 # Cobros 
 # ------------------------
 @app.route('/gestionar_cobros', methods=['GET'])
-@Conexion.login_requerido
 def gestionar_cobros():
     id_cobrador = session['user_id']
     clientes = Conexion.obtener_clientes_de_cobrador(id_cobrador)
@@ -180,12 +234,15 @@ def gestionar_cobros():
         productos = Conexion.obtener_productos_cliente(cliente['id'])
         total_deuda = sum(p['precio'] for p in productos)
 
+        historial_abonos = obtener_historial_abonos(cliente['id'])  # ⬅️ Aquí se usa
+
         datos_cobros.append({
             'cliente': cliente,
             'productos': productos,
             'total_deuda': total_deuda,
             'total_pagado': total_pagado,
-            'restante': total_deuda - total_pagado
+            'restante': total_deuda - total_pagado,
+            'historial': historial_abonos  # ⬅️ Se agrega al diccionario
         })
 
     mostrar_productos = any(len(c['productos']) > 0 for c in datos_cobros)

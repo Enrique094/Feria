@@ -1,0 +1,56 @@
+/* Contenedor general del formulario */
+form {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    padding: 30px 25px;
+    max-width: 400px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Etiquetas */
+form label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #000;
+}
+
+/* Inputs y selects */
+form input[type="number"],
+form select {
+    padding: 15px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    width: 100%;
+}
+
+/* Focus en inputs y selects */
+form input[type="number"]:focus,
+form select:focus {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+}
+
+/* Botón de enviar */
+form button {
+    background-color: #000000;
+    color: white;
+    padding: 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Hover botón */
+form button:hover {
+    background-color: #414141;
+}

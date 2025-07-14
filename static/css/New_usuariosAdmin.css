@@ -1,0 +1,120 @@
+.registro-usuario {
+    background-color: #ffffff;
+    padding: 40px;
+    margin: 30px auto;
+    max-width: 500px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-registro,
+.select-registro {
+    padding: 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-registro:focus,
+.select-registro:focus {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+    outline: none;
+}
+
+.campos-extra {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.campos-extra h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.btn-registro {
+    background-color: #000000;
+    color: white;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-registro:hover {
+    background-color: #333333;
+}
+
+.titulo-registro {
+    text-align: center;
+    font-size: 28px;
+    margin-top: 20px;
+    font-weight: bold;
+    color: #222;
+}
+
+.mensaje-exito {
+    text-align: center;
+    color: green;
+    font-weight: bold;
+}
+
+.mensaje-error {
+    text-align: center;
+    color: red;
+    font-weight: bold;
+}
+
+.campos-extra label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.campos-extra input,
+.campos-extra select {
+    margin-bottom: 10px;
+}
+
+.campos-extra h3 {
+    margin-top: 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: #2b2b2b;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+}
+
+.campos-extra label {
+    font-weight: 600;
+    color: #333;
+}
+
+.campos-extra input,
+.campos-extra select {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.campos-extra label {
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 5px;
+}
+
+.campos-extra input,
+.campos-extra select {
+    margin-bottom: 10px; /* ← espacio adicional bajo cada campo */
+}

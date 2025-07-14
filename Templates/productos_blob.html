@@ -16,30 +16,25 @@
       <input type="number" name="precio" step="0.01" placeholder="Precio" required><br>
       <input type="number" name="cantidad" placeholder="Cantidad" required><br>
 
-      <label for="categoria">Categoría:</label><br>
-      <select name="categoria" id="categoria" required>
-          <option value="" disabled selected>Selecciona una categoría</option>
-          {% for cat in categorias %}
-              <option value="{{ cat[0] }}">{{ cat[1] }}</option>
-          {% endfor %}
-      </select><br><br>
+        <label for="categoria">Categoría:</label><br>
+        <select name="categoria" id="categoria" required>
+            <option value="" disabled selected>Selecciona una categoría</option>
+            {% for cat in categorias %}
+                <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+        </select><br><br>
 
-      <label for="imagen">Imagen del producto:</label><br>
-      <input type="file" name="imagen" accept="image/*"><br><br>
-
-      <button type="submit">Guardar Producto</button>
+        <input type="file" name="imagen" required><br><br>
+        <button type="submit">Guardar Producto</button>
     </form>
 
-    <!-- Mostrar mensajes flash -->
-    {% with mensajes = get_flashed_messages(with_categories=true) %}
-      {% if mensajes %}
-        <div style="margin-top: 15px; width: 100%;">
-          {% for categoria, mensaje in mensajes %}
-            <div class="alert alert-{{ categoria }}">
-              {{ mensaje }}
-            </div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
           {% endfor %}
-        </div>
+        </ul>
       {% endif %}
     {% endwith %}
   </div>
