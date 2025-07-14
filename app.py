@@ -18,7 +18,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor'
+        database='Gestor3'
     )
 
 def admin_required(f):
@@ -186,14 +186,29 @@ def registrar_venta():
     if request.method == 'POST':
         id_cliente = request.form['cliente']
         id_producto = request.form['producto']
-        id_categoria = request.form['categoria']
-        monto = request.form['monto']
-        id_vendedor = session['user_id']
+        
+        # Obtener el id_vende asociado al usuario logueado (session['user_id'])
+        cursor.execute("""
+            SELECT id_vende FROM vendedor
+            WHERE nombre = (SELECT nombre FROM usuarios WHERE id = %s)
+            LIMIT 1
+        """, (session['user_id'],))
+        resultado = cursor.fetchone()
+
+        if resultado is None:
+            flash("❌ No se encontró un vendedor asociado al usuario actual.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for('registrar_venta'))
+
+        id_vendedor = resultado[0]
         fecha = datetime.today().strftime('%Y-%m-%d')
         hora = datetime.today().strftime('%H:%M:%S')
 
-        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora)
+        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora)
         flash("✅ Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
+        cursor.close()
+        conn.close()
         return redirect(url_for('registrar_venta'))
 
     cursor.execute("SELECT id_cliente, nombre FROM cliente")
@@ -202,13 +217,10 @@ def registrar_venta():
     cursor.execute("SELECT id_product, nombre FROM producto")
     productos = cursor.fetchall()
 
-    cursor.execute("SELECT id_categoria, nombre FROM categoria")
-    categorias = cursor.fetchall()
-
     cursor.close()
     conn.close()
 
-    return render_template("registrar_venta.html", clientes=clientes, productos=productos, categorias=categorias)
+    return render_template("registrar_venta.html", clientes=clientes, productos=productos)
 
 # ------------------------
 # Cobros 

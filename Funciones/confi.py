@@ -4,5 +4,5 @@
 database = 'localhost' # Extrae el nombre de la base de datos (Nioy)
 user = 'root'     # Nombre de usuario
 password = ''   # Contraseña
-host = 'Gestor'    # Host
+host = 'Gestor3'    # Host
 port = 3306         # Puerto

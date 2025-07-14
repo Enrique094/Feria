@@ -40,24 +40,31 @@
 
     <!-- Cliente -->
     <div id="campos_cliente" class="campos-extra" style="display: none;">
-        <h3>Datos de Cliente</h3>
-        <label>Apellidos</label>
-        <input class="input-registro" type="text" name="cliente_apellido" placeholder="Apellido" />
-        <label>Teléfono</label>
-        <input class="input-registro" type="text" name="cliente_tel" placeholder="00000000" minlength="8" maxlength="9" />
-        <label>DUI</label>
-        <input class="input-registro" type="text" name="cliente_dui" placeholder="00000000-0" maxlength="10" />
-        <label>Dirección</label>
-        <input class="input-registro" type="text" name="cliente_direccion" placeholder="San Salvador, Apopa" />
+      <h3>Datos de Cliente</h3>
+    <br>
+    <label for="cliente_apellido">Apellidos</label>
+    <input type="text" name="cliente_apellido" placeholder="Apellido" class="input-registro" />
+    <br>
+    <label for="cliente_tel">Teléfono</label>
+    <input type="text" name="cliente_tel" placeholder="00000000" class="input-registro" />
+    <br>
+    <label for="cliente_dui">DUI</label>
+    <input type="text" name="cliente_dui" placeholder="00000000-0" class="input-registro" />
+    <br>
+    <label for="cliente_direccion">Dirección</label>
+    <input type="text" name="cliente_direccion" placeholder="San Salvador, Apopa" class="input-registro" />
     </div>
 
     <!-- Vendedor -->
     <div id="campos_vendedor" class="campos-extra" style="display: none;">
         <h3>Datos de Vendedor</h3>
+        <br>
         <label>Apellidos</label>
         <input class="input-registro" type="text" name="vendedor_apellido" placeholder="Apellido" />
+        <br>
         <label>Teléfono</label>
         <input class="input-registro" type="text" name="vendedor_tel" placeholder="00000000" minlength="8" maxlength="9" />
+        <br>
         <label>Zona</label>
         <select class="select-registro" name="vendedor_zona">
             <option value="" disabled selected>Selecciona una zona</option>
@@ -70,10 +77,14 @@
     <!-- Cobrador -->
     <div id="campos_cobrador" class="campos-extra" style="display: none;">
         <h3>Datos de Cobrador</h3>
+        <br>
         <label>Apellidos</label>
+
         <input class="input-registro" type="text" name="cobrador_apellido" placeholder="Apellido" />
+        <br>
         <label>Teléfono</label>
         <input class="input-registro" type="text" name="cobrador_tel" placeholder="00000000" minlength="8" maxlength="9" />
+        <br>
         <label>Zona</label>
         <select class="select-registro" name="cobrador_zona">
             <option value="" disabled selected>Selecciona una zona</option>

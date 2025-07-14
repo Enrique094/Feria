@@ -73,3 +73,48 @@
     color: red;
     font-weight: bold;
 }
+
+.campos-extra label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.campos-extra input,
+.campos-extra select {
+    margin-bottom: 10px;
+}
+
+.campos-extra h3 {
+    margin-top: 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: #2b2b2b;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+}
+
+.campos-extra label {
+    font-weight: 600;
+    color: #333;
+}
+
+.campos-extra input,
+.campos-extra select {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.campos-extra label {
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 5px;
+}
+
+.campos-extra input,
+.campos-extra select {
+    margin-bottom: 10px; /* ← espacio adicional bajo cada campo */
+}

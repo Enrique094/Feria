@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor'
+        database='Gestor3'
     )
 
 # ------------------------
@@ -145,14 +145,14 @@ def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
 # ------------------------
 # Registrar venta
 # ------------------------
-def registrar_venta(id_cliente, id_vendedor, id_producto, id_categoria, monto, fecha, hora):
+def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora):
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO factura_venta (id_cliente, id_vende, id_product, id_catego, fecha, hora, monto)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (id_cliente, id_vendedor, id_producto, id_categoria, fecha, hora, monto))
+            INSERT INTO factura_venta (id_cliente, id_vende, id_product, fecha, hora)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_cliente, id_vendedor, id_producto, fecha, hora))
         conn.commit()
         cursor.close()
         conn.close()

@@ -81,17 +81,16 @@ CREATE TABLE cobrador_cliente (
 -- 9. Producto
 CREATE TABLE producto (
     id_product INT AUTO_INCREMENT PRIMARY KEY,
+    id_catego INT NOT NULL,
     nombre VARCHAR(30),
     descripcion VARCHAR(200), 
     precio INT NOT NULL,
     imagen BOOLEAN DEFAULT 0, 
     imagen_blob LONGBLOB,
     stock INT DEFAULT 0, 
-    id_catego INT NOT NULL,
     FOREIGN KEY (id_catego) REFERENCES categoria(id_categoria)
 );
 
--- 10. Factura de venta (sin campo monto)
 CREATE TABLE factura_venta (
     id_factura_venta INT AUTO_INCREMENT PRIMARY KEY,
     id_cliente INT NOT NULL,
@@ -101,11 +100,9 @@ CREATE TABLE factura_venta (
     hora TIME NOT NULL,
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
     FOREIGN KEY (id_vende) REFERENCES vendedor(id_vende),
-    FOREIGN KEY (id_product) REFERENCES producto(id_product),
-    FOREIGN KEY (id_catego) REFERENCES categoria(id_categoria)
+    FOREIGN KEY (id_product) REFERENCES producto(id_product)
 );
 
--- 11. Factura de cobro (sin campo monto)
 CREATE TABLE factura_cobro (
     id_factura_cobro INT AUTO_INCREMENT PRIMARY KEY,
     id_cobrador INT NOT NULL,
@@ -116,7 +113,6 @@ CREATE TABLE factura_cobro (
     FOREIGN KEY (id_zona) REFERENCES zona(id_zona),
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
 );
-
 
 -- 12. Contrato
 CREATE TABLE contrato (
