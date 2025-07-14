@@ -20,3 +20,19 @@ INSERT INTO rango (nombre) VALUES
 # Apartados por agregar
 - Triggers para la funcion del abono y el total de deuda del cliente
 - Triggers para la resta de stock de los productos
+
+
+
+AGREAG ESO 
+
+
+CREATE TABLE abonos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT,
+    id_cobrador INT,
+    monto DECIMAL(10,2),
+    fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id_factura INT,  -- RELACIONADO A factura_venta
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
+    FOREIGN KEY (id_factura) REFERENCES factura_venta(id)
+);
