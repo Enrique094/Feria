@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor3'
+        database='Gestor'
     )
 
 # ------------------------
