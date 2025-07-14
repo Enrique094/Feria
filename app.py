@@ -4,10 +4,10 @@ from datetime import datetime
 import mysql.connector
 from functools import wraps
 import io
-from flask_login import UserMixin, current_user
-from flask_login import login_required, LoginManager, UserMixin, current_user
 from Funciones import Conexion
 from Funciones import confi
+from Funciones.Conexion import obtener_historial_abonos
+
 
 
 app = Flask(__name__)
@@ -226,7 +226,6 @@ def registrar_venta():
 # Cobros 
 # ------------------------
 @app.route('/gestionar_cobros', methods=['GET'])
-@Conexion.login_requerido
 def gestionar_cobros():
     id_cobrador = session['user_id']
     clientes = Conexion.obtener_clientes_de_cobrador(id_cobrador)
@@ -238,12 +237,15 @@ def gestionar_cobros():
         productos = Conexion.obtener_productos_cliente(cliente['id'])
         total_deuda = sum(p['precio'] for p in productos)
 
+        historial_abonos = obtener_historial_abonos(cliente['id'])  # ⬅️ Aquí se usa
+
         datos_cobros.append({
             'cliente': cliente,
             'productos': productos,
             'total_deuda': total_deuda,
             'total_pagado': total_pagado,
-            'restante': total_deuda - total_pagado
+            'restante': total_deuda - total_pagado,
+            'historial': historial_abonos  # ⬅️ Se agrega al diccionario
         })
 
     mostrar_productos = any(len(c['productos']) > 0 for c in datos_cobros)
@@ -253,6 +255,7 @@ def gestionar_cobros():
         cobros=datos_cobros,
         mostrar_productos=mostrar_productos
     )
+
 
 
 @app.route('/abonar', methods=['POST'])
