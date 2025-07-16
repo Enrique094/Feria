@@ -1,13 +1,14 @@
 from flask import redirect, session, render_template, request, flash
 from functools import wraps
 import mysql.connector
+import datetime
 
 def get_connection():
     return mysql.connector.connect(
         host='localhost',
         user='root',
         password='',
-        database='Gestor'
+        database='Gestor3'
     )
 
 # ------------------------
@@ -176,82 +177,72 @@ def logout():
 # ------------------------
 # Obtener clientes asignados a cobrador
 # ------------------------
+
+# Obtener clientes asignados al cobrador
 def obtener_clientes_de_cobrador(id_cobrador):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT c.id_cliente AS id, c.nombre AS nombre, c.apellido 
-            FROM cliente c
-            JOIN cobrador_cliente cc ON cc.id_cliente = c.id_cliente
-            WHERE cc.id_cobrador = %s
-        """, (id_cobrador,))
-        clientes = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return clientes
-    except Exception as e:
-        print("❌ Error al obtener clientes del cobrador:", e)
-        return []
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT c.* FROM cliente c
+        JOIN cobrador_cliente cc ON c.id_cliente = cc.id_cliente
+        WHERE cc.id_cobrador = %s
+    """, (id_cobrador,))
+    clientes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return clientes
 
-# ------------------------
-# Obtener productos comprados por cliente
-# ------------------------
+# Obtener productos comprados por el cliente
 def obtener_productos_cliente(id_cliente):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT p.nombre, p.precio 
-            FROM producto p
-            JOIN contrato c ON c.id_cliente = %s AND c.id_cobrador = (SELECT id_cobrador FROM cobrador WHERE id_cobrador = c.id_cobrador LIMIT 1) AND c.id_cliente = %s
-            WHERE p.id_product = c.id_producto
-        """, (id_cliente, id_cliente))
-        productos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return productos
-    except Exception as e:
-        print("❌ Error al obtener productos del cliente:", e)
-        return []
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT p.nombre, p.descripcion, p.precio
+        FROM factura_venta fv
+        JOIN producto p ON fv.id_product = p.id_product
+        WHERE fv.id_cliente = %s
+    """, (id_cliente,))
+    productos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return productos
 
-# ------------------------
-# Obtener pagos realizados por cliente
-# ------------------------
+# Obtener abonos realizados por un cliente
 def obtener_pagos_cliente(id_cliente):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT monto FROM factura_cobro WHERE id_cliente = %s
-        """, (id_cliente,))
-        pagos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return pagos
-    except Exception as e:
-        print("❌ Error al obtener pagos del cliente:", e)
-        return []
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT monto_abonado AS monto, fecha
+        FROM abono_venta
+        WHERE id_cliente = %s
+        ORDER BY fecha ASC
+    """, (id_cliente,))
+    pagos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return pagos
 
-# ------------------------
-# Registrar abono
-# ------------------------
+# Registrar nuevo abono
 def registrar_abono(id_cliente, id_cobrador, monto):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
+    fecha = datetime.today().strftime('%Y-%m-%d')
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Buscar la factura de venta más reciente del cliente
+    cursor.execute("""
+        SELECT id_factura_venta FROM factura_venta
+        WHERE id_cliente = %s
+        ORDER BY fecha DESC LIMIT 1
+    """, (id_cliente,))
+    result = cursor.fetchone()
+
+    if result:
+        id_factura_venta = result[0]
         cursor.execute("""
-            INSERT INTO factura_cobro (id_cliente, id_cobrador, monto, fecha, id_zona)
-            VALUES (
-                %s,
-                %s,
-                %s,
-                NOW(),
-                (SELECT id_zona FROM cobrador WHERE id_cobrador = %s LIMIT 1)
-            )
-        """, (id_cliente, id_cobrador, monto, id_cobrador))
+            INSERT INTO abono_venta (id_factura_venta, id_cliente, id_cobrador, monto_abonado, fecha)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_factura_venta, id_cliente, id_cobrador, monto, fecha))
         conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print("❌ Error al registrar abono:", e)
+
+    cursor.close()
+    conn.close()

@@ -85,6 +85,7 @@ CREATE TABLE producto (
     nombre VARCHAR(30),
     descripcion VARCHAR(200), 
     precio INT NOT NULL,
+    Intereses DECIMAL(1,2) NOT NULL,
     imagen BOOLEAN DEFAULT 0, 
     imagen_blob LONGBLOB,
     stock INT DEFAULT 0, 
@@ -96,6 +97,8 @@ CREATE TABLE factura_venta (
     id_cliente INT NOT NULL,
     id_vende INT NOT NULL,
     id_product INT NOT NULL,
+    Precio_Mensual DECIMAL(10,2) NOT NULL,
+    Cuotas BIT NOT NULL
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),

@@ -1,13 +1,12 @@
+from decimal import Decimal
+from MySQLdb import InternalError
 from flask import Flask, render_template, redirect, request, session, url_for, flash, send_file
+from sqlalchemy import Float
 from Funciones import Conexion
 from datetime import datetime
 import mysql.connector
 from functools import wraps
 import io
-from flask_login import UserMixin, current_user
-from flask_login import login_required, LoginManager, UserMixin, current_user
-from Funciones import Conexion
-from Funciones import confi
 
 
 app = Flask(__name__)
@@ -18,7 +17,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor'
+        database='Gestor3'
     )
 
 def admin_required(f):
@@ -136,7 +135,6 @@ def editar_usuario():
         flash(f"❌ Error al actualizar: {str(e)}", "danger")
     finally:
         conn.close()
-
     return redirect('/register_admin')
 
 @app.route('/eliminar_usuario/<int:user_id>', methods=['POST'])
@@ -277,8 +275,9 @@ def productos():
     if request.method == 'POST':
         nombre = request.form['nombre']
         descripcion = request.form['descripcion']
-        precio = int(request.form['precio'])
+        precio = float(request.form['precio'])
         stock = int(request.form['cantidad'])
+        Intereses = float(request.form['Intereses'])
         categoria = request.form['categoria']
         imagen_file = request.files['imagen']
         imagen_blob = imagen_file.read() if imagen_file and imagen_file.filename != '' else None
@@ -294,9 +293,9 @@ def productos():
 
             id_catego = result[0]
             cursor.execute("""
-                INSERT INTO producto (nombre, descripcion, precio, imagen, stock, id_catego, imagen_blob)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (nombre, descripcion, precio, 1 if imagen_blob else 0, stock, id_catego, imagen_blob))
+                INSERT INTO producto (nombre, descripcion, precio, Intereses, imagen, stock, id_catego, imagen_blob)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (nombre, descripcion, precio, Intereses, 1 if imagen_blob else 0, stock, id_catego, imagen_blob))
 
             conn.commit()
             flash("✅ Producto creado exitosamente")
@@ -327,7 +326,7 @@ def mostrar_productos():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id_product, nombre, descripcion, precio, stock FROM producto")
+        cursor.execute("SELECT id_product, nombre, descripcion, precio, Intereses, stock FROM producto")
         productos = cursor.fetchall()
     except Exception as e:
         flash(f"❌ Error al obtener productos: {str(e)}")
