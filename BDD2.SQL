@@ -85,26 +85,37 @@ CREATE TABLE producto (
     nombre VARCHAR(30),
     descripcion VARCHAR(200), 
     precio INT NOT NULL,
-    Intereses DECIMAL(1,2) NOT NULL,
     imagen BOOLEAN DEFAULT 0, 
-    imagen_blob LONGBLOB,
+    imagen_blob MEDIUMBLOB,
     stock INT DEFAULT 0, 
     FOREIGN KEY (id_catego) REFERENCES categoria(id_categoria)
 );
+
+CREATE TABLE intereses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    meses INT NOT NULL,
+    porcentaje DECIMAL(5,2) NOT NULL
+);
+
 
 CREATE TABLE factura_venta (
     id_factura_venta INT AUTO_INCREMENT PRIMARY KEY,
     id_cliente INT NOT NULL,
     id_vende INT NOT NULL,
     id_product INT NOT NULL,
-    Precio_Mensual DECIMAL(10,2) NOT NULL,
-    Cuotas BIT NOT NULL
+    interes_aplicado DECIMAL(5,2) NOT NULL,
+    es_credito DECIMAL NOT NULL DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL,
+    cuotas INT NOT NULL,
+    precio_mensual DECIMAL(10,2) NOT NULL,
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
+    direccion VARCHAR(100) NOT NULL,
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
     FOREIGN KEY (id_vende) REFERENCES vendedor(id_vende),
     FOREIGN KEY (id_product) REFERENCES producto(id_product)
 );
+
 
 CREATE TABLE factura_cobro (
     id_factura_cobro INT AUTO_INCREMENT PRIMARY KEY,

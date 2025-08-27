@@ -1,7 +1,5 @@
-from decimal import Decimal
-from MySQLdb import InternalError
+
 from flask import Flask, render_template, redirect, request, session, url_for, flash, send_file
-from sqlalchemy import Float
 from Funciones import Conexion
 from datetime import datetime
 import mysql.connector
@@ -184,8 +182,11 @@ def registrar_venta():
     if request.method == 'POST':
         id_cliente = request.form['cliente']
         id_producto = request.form['producto']
+        direccion = request.form['direccion']
+        tipo_pago = request.form['tipo_pago']  # 'contado' o 'credito'
+        meses = request.form.get('meses', 0)  # Solo si es crédito
         
-        # Obtener el id_vende asociado al usuario logueado (session['user_id'])
+        # Obtener el id_vende asociado al usuario logueado
         cursor.execute("""
             SELECT id_vende FROM vendedor
             WHERE nombre = (SELECT nombre FROM usuarios WHERE id = %s)
@@ -200,25 +201,79 @@ def registrar_venta():
             return redirect(url_for('registrar_venta'))
 
         id_vendedor = resultado[0]
+        
+        # Obtener precio del producto
+        cursor.execute("SELECT precio FROM producto WHERE id_product = %s", (id_producto,))
+        precio_producto = cursor.fetchone()[0]
+        
+        # Configurar valores según tipo de pago
+        if tipo_pago == 'contado':
+            es_credito = 0
+            cuotas = 1
+            interes_aplicado = 0.00
+            total = precio_producto
+            precio_mensual = precio_producto
+        else:  # crédito
+            es_credito = 1
+            cuotas = int(meses)
+            
+            # Obtener porcentaje de la tabla intereses según los meses
+            cursor.execute("SELECT porcentaje FROM intereses WHERE meses = %s", (meses,))
+            interes_result = cursor.fetchone()
+            
+            if interes_result is None:
+                flash(f"❌ No se encontró configuración de interés para {meses} meses.", "danger")
+                cursor.close()
+                conn.close()
+                return redirect(url_for('registrar_venta'))
+            
+            interes_aplicado = interes_result[0]
+            total = precio_producto * (1 + interes_aplicado / 100)
+            precio_mensual = total / cuotas
+
         fecha = datetime.today().strftime('%Y-%m-%d')
         hora = datetime.today().strftime('%H:%M:%S')
 
-        exito = Conexion.registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora)
-        flash("✅ Venta registrada correctamente." if exito else "❌ Error al registrar la venta.")
+        try:
+            # Insertar la venta en la tabla factura_venta
+            cursor.execute("""
+                INSERT INTO factura_venta 
+                (id_cliente, id_vende, id_product, interes_aplicado, es_credito, 
+                total, cuotas, precio_mensual, fecha, hora, direccion)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (id_cliente, id_vendedor, id_producto, interes_aplicado, es_credito, 
+                total, cuotas, precio_mensual, fecha, hora, direccion))
+            
+            conn.commit()
+            flash("✅ Venta registrada exitosamente.", "success")
+            
+        except Exception as e:
+            conn.rollback()
+            flash(f"❌ Error al registrar la venta: {str(e)}", "danger")
+        
         cursor.close()
         conn.close()
         return redirect(url_for('registrar_venta'))
 
+    # GET request - mostrar formulario
     cursor.execute("SELECT id_cliente, nombre FROM cliente")
     clientes = cursor.fetchall()
 
-    cursor.execute("SELECT id_product, nombre FROM producto")
+    cursor.execute("SELECT id_product, nombre, precio FROM producto")
     productos = cursor.fetchall()
+    
+    # Obtener opciones de meses disponibles para crédito
+    cursor.execute("SELECT meses, porcentaje FROM intereses ORDER BY meses")
+    opciones_credito = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template("registrar_venta.html", clientes=clientes, productos=productos)
+    return render_template("registrar_venta.html", 
+                        clientes=clientes, 
+                        productos=productos,
+                        opciones_credito=opciones_credito)
+
 
 # ------------------------
 # Cobros 
@@ -277,7 +332,6 @@ def productos():
         descripcion = request.form['descripcion']
         precio = float(request.form['precio'])
         stock = int(request.form['cantidad'])
-        Intereses = float(request.form['Intereses'])
         categoria = request.form['categoria']
         imagen_file = request.files['imagen']
         imagen_blob = imagen_file.read() if imagen_file and imagen_file.filename != '' else None
@@ -293,9 +347,9 @@ def productos():
 
             id_catego = result[0]
             cursor.execute("""
-                INSERT INTO producto (nombre, descripcion, precio, Intereses, imagen, stock, id_catego, imagen_blob)
+                INSERT INTO producto (nombre, descripcion, precio, imagen, stock, id_catego, imagen_blob)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (nombre, descripcion, precio, Intereses, 1 if imagen_blob else 0, stock, id_catego, imagen_blob))
+            """, (nombre, descripcion, precio, 1 if imagen_blob else 0, stock, id_catego, imagen_blob))
 
             conn.commit()
             flash("✅ Producto creado exitosamente")
@@ -326,7 +380,7 @@ def mostrar_productos():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id_product, nombre, descripcion, precio, Intereses, stock FROM producto")
+        cursor.execute("SELECT id_product, nombre, descripcion, precio, stock FROM producto")
         productos = cursor.fetchall()
     except Exception as e:
         flash(f"❌ Error al obtener productos: {str(e)}")

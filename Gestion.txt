@@ -16,5 +16,13 @@ Apartados
             - Pagos
             - Producto a pagar
 
+    -  Apartado de ventas
+        -   Seleccionar un cliente 
+        -   Seleccionar el tipo de pago(En la BDD tipo Bin para que al contado equivalga a 0 y a cuotas a 1, si es en cuotas se le aplicara intereses y si es al contado)
+        -   numero de cuotas que se multiplicara con el precio con los intereses propuestos
+        -   seleccion de productos
+        -   que en la venta se pueda seleccionar mas de 2 productos por cliente y que el precio se tome como individual pero el total 
+        ya sumando con el precio final de todos los productos comprados
+
 
 pip install -r requirements.txt

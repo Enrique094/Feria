@@ -6,22 +6,147 @@
     <title>Registrar Venta</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/Ventas.css') }}">
 </head>
+
 <h2>Registrar Venta</h2>
 <form method="POST">
-    <label>Cliente:</label>
-    <select name="cliente" required>
-        {% for cliente in clientes %}
-            <option value="{{ cliente[0] }}">{{ cliente[1] }}</option>
-        {% endfor %}
-    </select><br>
+    <div class="form-group">
+        <label>Cliente:</label>
+        <select name="cliente" required>
+            <option value="">Seleccione un cliente</option>
+            {% for cliente in clientes %}
+                <option value="{{ cliente[0] }}">{{ cliente[1] }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-    <label>Producto:</label>
-    <select name="producto" required>
-        {% for producto in productos %}
-            <option value="{{ producto[0] }}">{{ producto[1] }}</option>
-        {% endfor %}
-    </select><br>
+    <div class="form-group">
+        <label>Producto:</label>
+        <select name="producto" id="producto" required onchange="mostrarPrecio()">
+            <option value="">Seleccione un producto</option>
+            {% for producto in productos %}
+                <option value="{{ producto[0] }}" data-precio="{{ producto[2] }}">
+                    {{ producto[1] }} - ${{ "%.2f"|format(producto[2]) }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
 
-    <button type="submit">Registrar Venta</button>
+    <div class="form-group">
+        <label>Dirección de entrega:</label>
+        <input type="text" name="direccion" required maxlength="100" 
+               placeholder="Ingrese la dirección de entrega">
+    </div>
+
+    <div class="form-group">
+        <label>Tipo de pago:</label>
+        <div class="radio-group">
+            <input type="radio" id="contado" name="tipo_pago" value="contado" 
+                   onchange="toggleCreditoOptions()" checked>
+            <label for="contado">Al contado</label>
+            
+            <input type="radio" id="credito" name="tipo_pago" value="credito" 
+                   onchange="toggleCreditoOptions()">
+            <label for="credito">A crédito</label>
+        </div>
+    </div>
+
+    <div class="form-group" id="credito-options" style="display: none;">
+        <label>Plazo (meses):</label>
+        <select name="meses" id="meses" onchange="calcularTotal()">
+            <option value="">Seleccione plazo</option>
+            {% for opcion in opciones_credito %}
+                <option value="{{ opcion[0] }}" data-interes="{{ opcion[1] }}">
+                    {{ opcion[0] }} meses ({{ "%.1f"|format(opcion[1]) }}% interés)
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group" id="resumen-pago" style="display: none;">
+        <div class="resumen-container">
+            <h4>Resumen de la venta:</h4>
+            <p><strong>Precio del producto:</strong> $<span id="precio-base">0.00</span></p>
+            <p><strong>Interés aplicado:</strong> <span id="interes-aplicado">0%</span></p>
+            <p><strong>Total a pagar:</strong> $<span id="total-pagar">0.00</span></p>
+            <p><strong>Número de cuotas:</strong> <span id="num-cuotas">1</span></p>
+            <p><strong>Pago mensual:</strong> $<span id="pago-mensual">0.00</span></p>
+        </div>
+    </div>
+
+    <button type="submit" id="btn-submit">Registrar Venta</button>
 </form>
+
+<script>
+function toggleCreditoOptions() {
+    const creditoRadio = document.getElementById('credito');
+    const creditoOptions = document.getElementById('credito-options');
+    const mesesSelect = document.getElementById('meses');
+    
+    if (creditoRadio.checked) {
+        creditoOptions.style.display = 'block';
+        mesesSelect.setAttribute('required', 'required');
+    } else {
+        creditoOptions.style.display = 'none';
+        mesesSelect.removeAttribute('required');
+        mesesSelect.value = '';
+    }
+    
+    calcularTotal();
+}
+
+function mostrarPrecio() {
+    const productoSelect = document.getElementById('producto');
+    const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+    
+    if (selectedOption && selectedOption.dataset.precio) {
+        document.getElementById('precio-base').textContent = 
+            parseFloat(selectedOption.dataset.precio).toFixed(2);
+        calcularTotal();
+    }
+}
+
+function calcularTotal() {
+    const productoSelect = document.getElementById('producto');
+    const contadoRadio = document.getElementById('contado');
+    const mesesSelect = document.getElementById('meses');
+    const resumenPago = document.getElementById('resumen-pago');
+    
+    const selectedProducto = productoSelect.options[productoSelect.selectedIndex];
+    
+    if (!selectedProducto || !selectedProducto.dataset.precio) {
+        resumenPago.style.display = 'none';
+        return;
+    }
+    
+    const precioBase = parseFloat(selectedProducto.dataset.precio);
+    let total = precioBase;
+    let interes = 0;
+    let cuotas = 1;
+    let pagoMensual = precioBase;
+    
+    if (!contadoRadio.checked && mesesSelect.value) {
+        const selectedMeses = mesesSelect.options[mesesSelect.selectedIndex];
+        if (selectedMeses && selectedMeses.dataset.interes) {
+            interes = parseFloat(selectedMeses.dataset.interes);
+            cuotas = parseInt(mesesSelect.value);
+            total = precioBase * (1 + interes / 100);
+            pagoMensual = total / cuotas;
+        }
+    }
+    
+    // Actualizar resumen
+    document.getElementById('interes-aplicado').textContent = interes + '%';
+    document.getElementById('total-pagar').textContent = total.toFixed(2);
+    document.getElementById('num-cuotas').textContent = cuotas;
+    document.getElementById('pago-mensual').textContent = pagoMensual.toFixed(2);
+    
+    resumenPago.style.display = 'block';
+}
+
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleCreditoOptions();
+});
+</script>
+
 {% endblock %}
