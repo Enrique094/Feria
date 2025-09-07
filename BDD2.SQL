@@ -101,6 +101,7 @@ CREATE TABLE intereses (
 CREATE TABLE factura_venta (
     id_factura_venta INT AUTO_INCREMENT PRIMARY KEY,
     id_cliente INT NOT NULL,
+    id_cobrador INT NULL,
     id_vende INT NOT NULL,
     id_product INT NOT NULL,
     interes_aplicado DECIMAL(5,2) NOT NULL,
@@ -111,6 +112,7 @@ CREATE TABLE factura_venta (
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
     direccion VARCHAR(100) NOT NULL,
+    FOREIGN KEY (id_cobrador) REFERENCES cobrador(id_cobrador),
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
     FOREIGN KEY (id_vende) REFERENCES vendedor(id_vende),
     FOREIGN KEY (id_product) REFERENCES producto(id_product)

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 28-08-2025 a las 01:39:08
+-- Tiempo de generación: 08-09-2025 a las 00:25:53
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -101,7 +101,8 @@ CREATE TABLE `cobrador` (
 --
 
 INSERT INTO `cobrador` (`id_cobrador`, `nombre`, `apellido`, `tel`, `id_rango`, `id_zona`) VALUES
-(1, 'Omar Enrique', 'Ventura', '76379499', 4, 5);
+(1, 'Omar Enrique', 'Ventura', '76379499', 4, 5),
+(2, 'Maria Gonzales', 'CASTILLO', '233332111', 4, 2);
 
 -- --------------------------------------------------------
 
@@ -160,15 +161,17 @@ CREATE TABLE `factura_venta` (
   `direccion` varchar(100) NOT NULL,
   `interes_aplicado` decimal(5,2) NOT NULL,
   `total` decimal(10,2) NOT NULL,
-  `es_credito` decimal(10,0) NOT NULL DEFAULT 0
+  `es_credito` decimal(10,0) NOT NULL DEFAULT 0,
+  `id_cobrador` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `factura_venta`
 --
 
-INSERT INTO `factura_venta` (`id_factura_venta`, `id_cliente`, `id_vende`, `id_product`, `fecha`, `hora`, `Precio_Mensual`, `Cuotas`, `direccion`, `interes_aplicado`, `total`, `es_credito`) VALUES
-(4, 1, 1, 3, '2025-08-27', '17:15:38', 4, b'1', 'Santa Teresa de las flores :D', 8.00, 26.99, 1);
+INSERT INTO `factura_venta` (`id_factura_venta`, `id_cliente`, `id_vende`, `id_product`, `fecha`, `hora`, `Precio_Mensual`, `Cuotas`, `direccion`, `interes_aplicado`, `total`, `es_credito`, `id_cobrador`) VALUES
+(4, 1, 1, 3, '2025-08-27', '17:15:38', 4, b'1', 'Santa Teresa de las flores :D', 8.00, 26.99, 1, 1),
+(5, 1, 1, 4, '2025-09-07', '13:33:11', 175, b'1', 'San Salvador, apopa madre tierra', 5.00, 524.99, 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -264,7 +267,8 @@ INSERT INTO `usuarios` (`id`, `nombre`, `apellido`, `correo`, `contraseña`, `es
 (2, 'Jairick', NULL, 'Jairosebastian@gmail.com', '12345678', 1, 2),
 (3, 'Nestor ', NULL, 'Nestor@gmail.com', '12345678', 1, 3),
 (4, 'Omar Enrique', NULL, 'omar@gmail.com', '12345678', 1, 4),
-(5, 'Omar', NULL, 'omarenrique108@gmail.com', '12345678', 1, 2);
+(5, 'Omar', NULL, 'omarenrique108@gmail.com', '12345678', 1, 2),
+(6, 'Maria Gonzales', NULL, 'maria@gmail.com', '12345678', 1, 4);
 
 -- --------------------------------------------------------
 
@@ -380,7 +384,8 @@ ALTER TABLE `factura_venta`
   ADD PRIMARY KEY (`id_factura_venta`),
   ADD KEY `id_cliente` (`id_cliente`),
   ADD KEY `id_vende` (`id_vende`),
-  ADD KEY `id_product` (`id_product`);
+  ADD KEY `id_product` (`id_product`),
+  ADD KEY `fk_factura_cobrador` (`id_cobrador`);
 
 --
 -- Indices de la tabla `intereses`
@@ -450,7 +455,7 @@ ALTER TABLE `cliente`
 -- AUTO_INCREMENT de la tabla `cobrador`
 --
 ALTER TABLE `cobrador`
-  MODIFY `id_cobrador` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_cobrador` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `contrato`
@@ -468,7 +473,7 @@ ALTER TABLE `factura_cobro`
 -- AUTO_INCREMENT de la tabla `factura_venta`
 --
 ALTER TABLE `factura_venta`
-  MODIFY `id_factura_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_factura_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `intereses`
@@ -492,7 +497,7 @@ ALTER TABLE `rango`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `vendedor`
@@ -560,7 +565,8 @@ ALTER TABLE `factura_cobro`
 ALTER TABLE `factura_venta`
   ADD CONSTRAINT `factura_venta_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `cliente` (`id_cliente`),
   ADD CONSTRAINT `factura_venta_ibfk_2` FOREIGN KEY (`id_vende`) REFERENCES `vendedor` (`id_vende`),
-  ADD CONSTRAINT `factura_venta_ibfk_3` FOREIGN KEY (`id_product`) REFERENCES `producto` (`id_product`);
+  ADD CONSTRAINT `factura_venta_ibfk_3` FOREIGN KEY (`id_product`) REFERENCES `producto` (`id_product`),
+  ADD CONSTRAINT `fk_factura_cobrador` FOREIGN KEY (`id_cobrador`) REFERENCES `cobrador` (`id_cobrador`);
 
 --
 -- Filtros para la tabla `producto`

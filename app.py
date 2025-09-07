@@ -204,16 +204,30 @@ def registrar_venta():
         
         # Obtener precio del producto
         cursor.execute("SELECT precio FROM producto WHERE id_product = %s", (id_producto,))
-        precio_producto = cursor.fetchone()[0]
+        precio_result = cursor.fetchone()
+        
+        if precio_result is None:
+            flash("❌ Producto no encontrado.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for('registrar_venta'))
+            
+        precio_producto = precio_result[0]
         
         # Configurar valores según tipo de pago
         if tipo_pago == 'contado':
             es_credito = 0
             cuotas = 1
             interes_aplicado = 0.00
-            total = precio_producto
-            precio_mensual = precio_producto
+            total = float(precio_producto)  # Convertir a float para cálculos
+            precio_mensual = total
         else:  # crédito
+            if not meses or meses == '0':
+                flash("❌ Debe seleccionar un plazo para pago a crédito.", "danger")
+                cursor.close()
+                conn.close()
+                return redirect(url_for('registrar_venta'))
+                
             es_credito = 1
             cuotas = int(meses)
             
@@ -227,8 +241,8 @@ def registrar_venta():
                 conn.close()
                 return redirect(url_for('registrar_venta'))
             
-            interes_aplicado = interes_result[0]
-            total = precio_producto * (1 + interes_aplicado / 100)
+            interes_aplicado = float(interes_result[0])
+            total = float(precio_producto) * (1 + interes_aplicado / 100)
             precio_mensual = total / cuotas
 
         fecha = datetime.today().strftime('%Y-%m-%d')
@@ -239,84 +253,50 @@ def registrar_venta():
             cursor.execute("""
                 INSERT INTO factura_venta 
                 (id_cliente, id_vende, id_product, interes_aplicado, es_credito, 
-                total, cuotas, precio_mensual, fecha, hora, direccion)
+                 total, cuotas, precio_mensual, fecha, hora, direccion)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (id_cliente, id_vendedor, id_producto, interes_aplicado, es_credito, 
-                total, cuotas, precio_mensual, fecha, hora, direccion))
+                  total, cuotas, precio_mensual, fecha, hora, direccion))
             
             conn.commit()
             flash("✅ Venta registrada exitosamente.", "success")
             
+            # Opcional: Registrar detalles adicionales en log
+            print(f"Venta registrada - Cliente: {id_cliente}, Producto: {id_producto}, Total: ${total:.2f}")
+            
         except Exception as e:
             conn.rollback()
             flash(f"❌ Error al registrar la venta: {str(e)}", "danger")
+            print(f"Error en registrar_venta: {e}")  # Para debugging
         
         cursor.close()
         conn.close()
         return redirect(url_for('registrar_venta'))
 
     # GET request - mostrar formulario
-    cursor.execute("SELECT id_cliente, nombre FROM cliente")
-    clientes = cursor.fetchall()
+    try:
+        cursor.execute("SELECT id_cliente, nombre FROM cliente")
+        clientes = cursor.fetchall()
 
-    cursor.execute("SELECT id_product, nombre, precio FROM producto")
-    productos = cursor.fetchall()
-    
-    # Obtener opciones de meses disponibles para crédito
-    cursor.execute("SELECT meses, porcentaje FROM intereses ORDER BY meses")
-    opciones_credito = cursor.fetchall()
+        cursor.execute("SELECT id_product, nombre, precio FROM producto WHERE stock > 0")  # Solo productos con stock
+        productos = cursor.fetchall()
+        
+        # Obtener opciones de meses disponibles para crédito
+        cursor.execute("SELECT meses, porcentaje FROM intereses ORDER BY meses")
+        opciones_credito = cursor.fetchall()
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
 
-    return render_template("registrar_venta.html", 
-                        clientes=clientes, 
-                        productos=productos,
-                        opciones_credito=opciones_credito)
-
-
-# ------------------------
-# Cobros 
-# ------------------------
-@app.route('/gestionar_cobros', methods=['GET'])
-@Conexion.login_requerido
-def gestionar_cobros():
-    id_cobrador = session['user_id']
-    clientes = Conexion.obtener_clientes_de_cobrador(id_cobrador)
-
-    datos_cobros = []
-    for cliente in clientes:
-        pagos = Conexion.obtener_pagos_cliente(cliente['id'])
-        total_pagado = sum(p['monto'] for p in pagos)
-        productos = Conexion.obtener_productos_cliente(cliente['id'])
-        total_deuda = sum(p['precio'] for p in productos)
-
-        datos_cobros.append({
-            'cliente': cliente,
-            'productos': productos,
-            'total_deuda': total_deuda,
-            'total_pagado': total_pagado,
-            'restante': total_deuda - total_pagado
-        })
-
-    mostrar_productos = any(len(c['productos']) > 0 for c in datos_cobros)
-
-    return render_template(
-        'gestionar_cobros.html',
-        cobros=datos_cobros,
-        mostrar_productos=mostrar_productos
-    )
-
-
-@app.route('/abonar', methods=['POST'])
-@Conexion.login_requerido
-def abonar():
-    id_cliente = request.form['id_cliente']
-    monto = float(request.form['monto'])
-    id_cobrador = session['user_id']
-    Conexion.registrar_abono(id_cliente, id_cobrador, monto)
-    flash("✅ Abono registrado correctamente.")
-    return redirect('/gestionar_cobros')
+        return render_template("registrar_venta.html", 
+                            clientes=clientes, 
+                            productos=productos,
+                            opciones_credito=opciones_credito)
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        flash(f"❌ Error al cargar datos: {str(e)}", "danger")
+        return redirect(url_for('dashboard'))  # o la página principal
 
 
 # ------------------------
@@ -429,6 +409,31 @@ def agregar_categoria():
         if conn: conn.close()
 
     return redirect(url_for('productos'))
+
+@app.route('/ventas_admin', methods=['GET', 'POST'])
+@Conexion.login_requerido
+def ventas_admin():
+    if session.get('rango') != 1:  # Solo admin
+        flash("❌ No tienes permisos para acceder a esta página.", "danger")
+        return redirect('/home')
+
+    conn = Conexion.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id_cobrador, nombre, apellido FROM cobrador")
+    cobradores = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    if request.method == 'POST':
+        id_factura = request.form['id_factura']
+        id_cobrador = request.form['id_cobrador']
+        Conexion.asignar_cobrador(id_factura, id_cobrador)
+        flash("Cobrador asignado correctamente.", "success")
+        return redirect('/ventas_admin')
+
+    ventas = Conexion.obtener_ventas()
+    return render_template("ventas_admin.html", ventas=ventas, cobradores=cobradores)
+
 
 # ------------------------
 # Run

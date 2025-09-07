@@ -1,0 +1,146 @@
+/* Contenedor principal */
+.ventas-container {
+    background-color: #ffffff;
+    padding: 40px;
+    margin: 30px auto;
+    max-width: 1200px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Título */
+.titulo-ventas {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 30px;
+    font-weight: bold;
+    color: #222;
+}
+
+/* Tabla */
+.tabla-ventas {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tabla-ventas th {
+    background-color: #f8f9fa;
+    padding: 16px 12px;
+    font-weight: bold;
+    color: #333;
+    border-bottom: 2px solid #e0e0e0;
+    font-size: 15px;
+}
+
+.tabla-ventas td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #444;
+    font-size: 14px;
+}
+
+.tabla-ventas tr:hover {
+    background-color: #f8f9fa;
+}
+
+.tabla-ventas tr:last-child td {
+    border-bottom: none;
+}
+
+/* Formulario de asignación dentro de la tabla */
+.form-asignacion {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 0;
+}
+
+.select-cobrador {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    min-width: 150px;
+}
+
+.select-cobrador:focus {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+    outline: none;
+}
+
+.btn-asignar {
+    background-color: #000000;
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-asignar:hover {
+    background-color: #333333;
+}
+
+/* Estados de acción */
+.estado-sin-cobrador {
+    color: #e74c3c;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.estado-con-cobrador {
+    color: #27ae60;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Campo oculto para formularios */
+.campo-oculto {
+    display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ventas-container {
+        padding: 20px;
+        margin: 15px;
+    }
+    
+    .tabla-ventas {
+        font-size: 12px;
+    }
+    
+    .tabla-ventas th,
+    .tabla-ventas td {
+        padding: 10px 8px;
+    }
+    
+    .form-asignacion {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .select-cobrador {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .titulo-ventas {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+}

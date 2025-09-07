@@ -1,7 +1,6 @@
 from flask import redirect, session, render_template, request, flash
 from functools import wraps
 import mysql.connector
-import datetime
 
 def get_connection():
     return mysql.connector.connect(
@@ -174,75 +173,44 @@ def logout():
     session.pop('estado', None)
     return redirect('/login')
 
-# ------------------------
-# Obtener clientes asignados a cobrador
-# ------------------------
-
-# Obtener clientes asignados al cobrador
-def obtener_clientes_de_cobrador(id_cobrador):
+def obtener_ventas():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT c.* FROM cliente c
-        JOIN cobrador_cliente cc ON c.id_cliente = cc.id_cliente
-        WHERE cc.id_cobrador = %s
-    """, (id_cobrador,))
-    clientes = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return clientes
-
-# Obtener productos comprados por el cliente
-def obtener_productos_cliente(id_cliente):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT p.nombre, p.descripcion, p.precio
+        SELECT fv.id_factura_venta, fv.fecha, fv.hora, fv.total, fv.cuotas, fv.precio_mensual,
+               c.nombre AS cliente, 
+               p.nombre AS producto, 
+               v.nombre AS vendedor, 
+               cb.nombre AS cobrador
         FROM factura_venta fv
+        JOIN cliente c ON fv.id_cliente = c.id_cliente
         JOIN producto p ON fv.id_product = p.id_product
-        WHERE fv.id_cliente = %s
-    """, (id_cliente,))
-    productos = cursor.fetchall()
+        JOIN vendedor v ON fv.id_vende = v.id_vende
+        LEFT JOIN cobrador cb ON fv.id_cobrador = cb.id_cobrador
+    """)
+    ventas = cursor.fetchall()
     cursor.close()
     conn.close()
-    return productos
+    return ventas
 
-# Obtener abonos realizados por un cliente
-def obtener_pagos_cliente(id_cliente):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT monto_abonado AS monto, fecha
-        FROM abono_venta
-        WHERE id_cliente = %s
-        ORDER BY fecha ASC
-    """, (id_cliente,))
-    pagos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return pagos
 
-# Registrar nuevo abono
-def registrar_abono(id_cliente, id_cobrador, monto):
-    fecha = datetime.today().strftime('%Y-%m-%d')
+
+def asignar_cobrador(id_factura_venta, id_cobrador):
     conn = get_connection()
     cursor = conn.cursor()
-    
-    # Buscar la factura de venta más reciente del cliente
     cursor.execute("""
-        SELECT id_factura_venta FROM factura_venta
-        WHERE id_cliente = %s
-        ORDER BY fecha DESC LIMIT 1
-    """, (id_cliente,))
-    result = cursor.fetchone()
-
-    if result:
-        id_factura_venta = result[0]
-        cursor.execute("""
-            INSERT INTO abono_venta (id_factura_venta, id_cliente, id_cobrador, monto_abonado, fecha)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (id_factura_venta, id_cliente, id_cobrador, monto, fecha))
-        conn.commit()
-
+        UPDATE factura_venta
+        SET id_cobrador = %s
+        WHERE id_factura_venta = %s
+    """, (id_cobrador, id_factura_venta))
+    conn.commit()
     cursor.close()
     conn.close()
+    return True
+
+
+
+
+
+
+
