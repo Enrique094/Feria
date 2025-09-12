@@ -3,8 +3,6 @@ from functools import wraps
 import mysql.connector
 import hashlib
 from Funciones import confi
-
-
 from router.admin import admin_bp 
 
 def get_connection():

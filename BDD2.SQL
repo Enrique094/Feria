@@ -153,4 +153,4 @@ CREATE TABLE abono_venta (
     FOREIGN KEY (id_factura_venta) REFERENCES factura_venta(id_factura_venta),
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
     FOREIGN KEY (id_cobrador) REFERENCES cobrador(id_cobrador)
-);
+);  

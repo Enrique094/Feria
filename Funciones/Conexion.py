@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor3'
+        database='GestorPlus'
     )
 
 # ------------------------
@@ -30,7 +30,8 @@ def login(Correo, Contraseña):
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT u.id, u.nombre, u.apellido, u.correo, u.contraseña, u.id_rango, u.estado, r.nombre 
+                SELECT u.id, u.nombre, u.apellido, u.correo, u.contraseña, 
+                       u.id_rango, u.estado, r.nombre 
                 FROM usuarios u 
                 JOIN rango r ON u.id_rango = r.id_rango 
                 WHERE u.correo=%s AND u.contraseña=%s AND u.estado=1
@@ -38,15 +39,6 @@ def login(Correo, Contraseña):
             user = cursor.fetchone()
             if user:
                 user_id, nombre, apellido, correo, contra, id_rango, estado, rango_nombre = user
-                
-                # Si es cobrador (id_rango == 4), obtener id_cobrador real
-                if id_rango == 4:
-                    cursor.execute("""
-                        SELECT id_cobrador FROM cobrador WHERE nombre=%s AND apellido=%s LIMIT 1
-                    """, (nombre, apellido))
-                    cobrador = cursor.fetchone()
-                    if cobrador:
-                        user_id = cobrador[0]  # Reemplaza id_usuario por id_cobrador
 
                 session.permanent = True
                 session['user_id'] = user_id
@@ -56,6 +48,23 @@ def login(Correo, Contraseña):
                 session['rango'] = id_rango
                 session['rango_nombre'] = rango_nombre
                 session['estado'] = estado
+
+                # 🔹 Guardar IDs reales según el rol
+                if id_rango == 2:  # Vendedor
+                    cursor.execute("SELECT id_vendedor FROM vendedor WHERE id_usuario=%s LIMIT 1", (user_id,))
+                    vendedor = cursor.fetchone()
+                    session['vendedor_id'] = vendedor[0] if vendedor else None
+
+                elif id_rango == 3:  # Cliente
+                    cursor.execute("SELECT id_cliente FROM cliente WHERE id_usuario=%s LIMIT 1", (user_id,))
+                    cliente = cursor.fetchone()
+                    session['cliente_id'] = cliente[0] if cliente else None
+
+                elif id_rango == 4:  # Cobrador
+                    cursor.execute("SELECT id_cobrador FROM cobrador WHERE id_usuario=%s LIMIT 1", (user_id,))
+                    cobrador = cursor.fetchone()
+                    session['cobrador_id'] = cobrador[0] if cobrador else None
+
                 cursor.close()
                 conn.close()
                 return redirect('/home')
@@ -70,6 +79,7 @@ def login(Correo, Contraseña):
             return redirect('/login')
     return render_template('login.html')
 
+
 # ------------------------
 # Registro general y admin
 # ------------------------
@@ -81,6 +91,7 @@ def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
 
             id_rango = int(id_rango)
 
+            # Verificar si ya existe el correo
             cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
             if cursor.fetchone():
                 cursor.close()
@@ -88,19 +99,24 @@ def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
                 flash("❌ El correo ya existe.")
                 return redirect('/register_admin?error=correo_existente')
 
+            # Insertar en usuarios
             cursor.execute("""
                 INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado)
                 VALUES (%s, %s, %s, %s, %s)
             """, (Nombre, Correo, Contraseña, id_rango, 1))
             conn.commit()
 
-            # Extra info según el rango
+            # 🔹 Guardar el ID de usuario recién creado
+            id_usuario = cursor.lastrowid
+
+            # Insertar en la tabla correspondiente según el rango
             if datos_extra:
                 if id_rango == 2:  # Cliente
                     cursor.execute("""
-                        INSERT INTO cliente (nombre, apellido, id_rango, tel, dui, correo, direccion)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO cliente (id_usuario, nombre, apellido, id_rango, tel, dui, correo, direccion)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
+                        id_usuario,
                         Nombre,
                         datos_extra.get("cliente_apellido", ""),
                         id_rango,
@@ -109,38 +125,46 @@ def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
                         Correo,
                         datos_extra.get("cliente_direccion", "")
                     ))
+
                 elif id_rango == 3:  # Vendedor
                     cursor.execute("""
-                        INSERT INTO vendedor (nombre, apellido, tel, id_rango, id_zona)
-                        VALUES (%s, %s, %s, %s, %s)
+                        INSERT INTO vendedor (id_usuario, nombre, apellido, tel, id_rango, id_zona)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                     """, (
+                        id_usuario,
                         Nombre,
                         datos_extra.get("vendedor_apellido", ""),
                         datos_extra.get("vendedor_tel", ""),
                         id_rango,
                         int(datos_extra.get("vendedor_zona", 1))
                     ))
+
                 elif id_rango == 4:  # Cobrador
                     cursor.execute("""
-                        INSERT INTO cobrador (nombre, apellido, tel, id_rango, id_zona)
-                        VALUES (%s, %s, %s, %s, %s)
+                        INSERT INTO cobrador (id_usuario, nombre, apellido, tel, id_rango, id_zona)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                     """, (
+                        id_usuario,
                         Nombre,
                         datos_extra.get("cobrador_apellido", ""),
                         datos_extra.get("cobrador_tel", ""),
                         id_rango,
                         int(datos_extra.get("cobrador_zona", 1))
                     ))
+
             conn.commit()
             cursor.close()
             conn.close()
             flash("✅ Registro exitoso.")
             return redirect('/register_admin?registro=exitoso')
+
         except Exception as e:
             print("❌ Error al registrar usuario:", e)
             flash("❌ Error interno al registrar usuario")
             return redirect('/register_admin?error=fallo_en_registro')
+
     return render_template('register_admin.html')
+
 
 # ------------------------
 # Registrar venta
@@ -207,6 +231,19 @@ def asignar_cobrador(id_factura_venta, id_cobrador):
     cursor.close()
     conn.close()
     return True
+
+def obtener_cobradores():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT c.id_cobrador, u.nombre, u.apellido
+        FROM cobrador c
+        JOIN usuarios u ON c.id_usuario = u.id
+    """)
+    cobradores = cursor.fetchall()
+    conn.close()
+    return cobradores
+
 
 
 

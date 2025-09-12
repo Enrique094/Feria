@@ -5,7 +5,7 @@ from datetime import datetime
 import mysql.connector
 from functools import wraps
 import io
-
+import calendar
 
 app = Flask(__name__)
 app.secret_key = 'Quemen el ina'
@@ -15,7 +15,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='Gestor3'
+        database='GestorPlus'
     )
 
 def admin_required(f):
@@ -26,6 +26,73 @@ def admin_required(f):
             return redirect('/home')
         return f(*args, **kwargs)
     return decorada
+
+def generar_tabla_meses(fecha_inicio, total_cuotas, precio_mensual, historial_abonos):
+    """Genera una tabla de meses mostrando estado de pagos"""
+    meses = []
+    # Convertir fecha_inicio a datetime si es necesario
+    if isinstance(fecha_inicio, str):
+        fecha_actual = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+    else:
+        fecha_actual = fecha_inicio
+    
+    # Para productos a contado, solo mostrar 1 mes
+    if total_cuotas == 0:
+        total_cuotas = 1
+    
+    # Crear diccionario de abonos por mes/año
+    abonos_por_mes = {}
+    for abono in historial_abonos:
+        key = f"{abono[3]}-{abono[4]}"  # mes-año
+        if key not in abonos_por_mes:
+            abonos_por_mes[key] = []
+        abonos_por_mes[key].append({
+            'monto': abono[1],
+            'fecha': abono[2],
+            'observaciones': abono[6] if len(abono) > 6 else ''
+        })
+    
+    # Determinar cuántos meses mostrar
+    meses_a_mostrar = 1 if total_cuotas == 1 else min(12, int(total_cuotas))
+
+    for i in range(meses_a_mostrar):
+        # Calcular fecha del mes
+        año = fecha_actual.year
+        mes = fecha_actual.month + i
+        
+        # Ajustar año si el mes supera 12
+        while mes > 12:
+            mes -= 12
+            año += 1
+            
+        mes_key = f"{mes}-{año}"
+        
+        estado = 'pendiente'
+        abonos_mes = abonos_por_mes.get(mes_key, [])
+        total_abonado_mes = sum(abono['monto'] for abono in abonos_mes)
+        
+        if total_abonado_mes >= float(precio_mensual):
+            estado = 'pagado'
+        elif total_abonado_mes > 0:
+            estado = 'parcial'
+        
+        # Obtener nombre del mes
+        mes_nombre = calendar.month_name[mes] + f" {año}"
+
+        meses.append({
+            'numero': i + 1,
+            'mes_nombre': mes_nombre,
+            'mes': mes,
+            'año': año,
+            'cuota_esperada': float(precio_mensual),
+            'total_abonado': total_abonado_mes,
+            'estado': estado,
+            'abonos': abonos_mes,
+            'pendiente': max(0, float(precio_mensual) - total_abonado_mes)
+        })
+    
+    return meses
+
 
 # ------------------------
 # Rutas básicas
@@ -433,6 +500,380 @@ def ventas_admin():
 
     ventas = Conexion.obtener_ventas()
     return render_template("ventas_admin.html", ventas=ventas, cobradores=cobradores)
+
+
+# Cobrar
+
+@app.route('/cobros')
+@Conexion.login_requerido
+def cobros():
+    """Página principal de cobros - muestra las ventas asignadas al cobrador logueado"""
+    if session.get('rango') != 4:  # Solo cobradores
+        flash("Acceso denegado. Solo cobradores pueden acceder.", "danger")
+        return redirect('/home')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # PASO 1: Obtener el id_cobrador real del usuario logueado
+        # Usar TRIM y LOWER para comparación más robusta
+        cursor.execute("""
+            SELECT c.id_cobrador 
+            FROM cobrador c
+            JOIN usuarios u ON TRIM(LOWER(c.nombre)) = TRIM(LOWER(u.nombre))
+            AND COALESCE(TRIM(LOWER(c.apellido)), '') = COALESCE(TRIM(LOWER(u.apellido)), '')
+            WHERE u.id = %s AND u.id_rango = 4
+            LIMIT 1
+        """, (session['user_id'],))
+        
+        cobrador_result = cursor.fetchone()
+        
+        if not cobrador_result:
+            # Debug detallado para identificar el problema
+            cursor.execute("SELECT id, nombre, apellido FROM usuarios WHERE id = %s", (session['user_id'],))
+            usuario_info = cursor.fetchone()
+            
+            cursor.execute("SELECT id_cobrador, nombre, apellido FROM cobrador")
+            cobradores_info = cursor.fetchall()
+            
+            print(f"DEBUG - Usuario buscado: {usuario_info}")
+            print(f"DEBUG - Cobradores disponibles: {cobradores_info}")
+            
+            flash("No se encontró cobrador asociado al usuario actual. Contacte al administrador.", "warning")
+            return redirect('/home')
+        
+        id_cobrador_real = cobrador_result['id_cobrador']
+        print(f"DEBUG - Cobrador encontrado: ID = {id_cobrador_real}")
+        
+        # PASO 2: Obtener ventas asignadas a ese cobrador
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_venta,
+                fv.total,
+                CASE WHEN fv.Cuotas = 1 THEN 'Crédito' ELSE 'Contado' END AS tipo_pago,
+                fv.Precio_Mensual AS precio_mensual,
+                fv.estado_pago,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
+                c.nombre AS cliente_nombre,
+                c.apellido AS cliente_apellido,
+                c.tel AS cliente_telefono,
+                c.direccion AS cliente_direccion,
+                p.nombre AS producto_nombre
+            FROM factura_venta fv
+            JOIN cliente c ON fv.id_cliente = c.id_cliente
+            JOIN producto p ON fv.id_product = p.id_product
+            WHERE fv.id_cobrador = %s AND fv.es_credito = 1
+            ORDER BY fv.fecha DESC
+        """, (id_cobrador_real,))
+        
+        ventas = cursor.fetchall()
+        print(f"DEBUG - Ventas encontradas: {len(ventas)}")
+        
+    except Exception as e:
+        print(f"ERROR en cobros(): {str(e)}")
+        flash("Error al obtener ventas.", "danger")
+        ventas = []
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template("cobros.html", ventas=ventas)
+
+@app.route('/detalle_cobro/<int:factura_id>')
+@Conexion.login_requerido
+def detalle_cobro(factura_id):
+    """Muestra el detalle de una factura específica con historial de pagos"""
+    if session.get('rango') != 4:
+        flash("Acceso denegado.", "danger")
+        return redirect('/home')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Obtener el id_cobrador real del usuario logueado
+        cursor.execute("""
+            SELECT c.id_cobrador 
+            FROM cobrador c
+            JOIN usuarios u ON TRIM(LOWER(c.nombre)) = TRIM(LOWER(u.nombre))
+            AND COALESCE(TRIM(LOWER(c.apellido)), '') = COALESCE(TRIM(LOWER(u.apellido)), '')
+            WHERE u.id = %s AND u.id_rango = 4
+            LIMIT 1
+        """, (session['user_id'],))
+        
+        cobrador_result = cursor.fetchone()
+        if not cobrador_result:
+            flash("No se encontró cobrador asociado.", "danger")
+            return redirect('/home')
+        
+        id_cobrador_real = cobrador_result['id_cobrador']
+        
+        # Verificar que esta factura pertenezca al cobrador logueado
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM factura_venta fv
+            WHERE fv.id_factura_venta = %s AND fv.id_cobrador = %s
+        """, (factura_id, id_cobrador_real))
+        
+        if cursor.fetchone()["cnt"] == 0:
+            flash("No tienes acceso a esta factura.", "danger")
+            return redirect('/cobros')
+        
+        # Obtener información completa de la factura
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_venta,
+                fv.total,
+                fv.Cuotas AS cuotas,
+                fv.Precio_Mensual AS precio_mensual,
+                fv.estado_pago,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
+                c.id_cliente,
+                c.nombre AS cliente_nombre,
+                c.apellido AS cliente_apellido,
+                c.tel AS cliente_telefono,
+                c.direccion AS cliente_direccion,
+                p.nombre AS producto_nombre,
+                p.descripcion AS producto_descripcion
+            FROM factura_venta fv
+            JOIN cliente c ON fv.id_cliente = c.id_cliente
+            JOIN producto p ON fv.id_product = p.id_product
+            WHERE fv.id_factura_venta = %s
+        """, (factura_id,))
+        
+        factura = cursor.fetchone()
+        
+        if not factura:
+            flash("Factura no encontrada.", "danger")
+            return redirect('/cobros')
+        
+        # Obtener historial de abonos
+        cursor.execute("""
+            SELECT 
+                av.id_abono,
+                av.monto_abonado,
+                av.fecha,
+                av.mes_correspondiente,
+                av.año_correspondiente,
+                av.saldo_pendiente,
+                av.observaciones
+            FROM abono_venta av
+            WHERE av.id_factura_venta = %s
+            ORDER BY av.año_correspondiente, av.mes_correspondiente
+        """, (factura_id,))
+        
+        historial_abonos = cursor.fetchall()
+        
+        # Convertir historial a formato esperado por generar_tabla_meses
+        historial_tuplas = []
+        for abono in historial_abonos:
+            historial_tuplas.append((
+                abono['id_abono'],
+                abono['monto_abonado'], 
+                abono['fecha'],
+                abono['mes_correspondiente'],
+                abono['año_correspondiente'],
+                abono['saldo_pendiente'],
+                abono['observaciones']
+            ))
+        
+        # Generar tabla de meses
+        fecha_inicio = factura["fecha_venta"]
+        # Para cuotas: si es crédito (bit=1) usar 12 meses, si contado (bit=0) usar 1
+        cuotas_calculadas = 12 if factura["cuotas"] == 1 else 1
+        meses_pago = generar_tabla_meses(
+            fecha_inicio, 
+            cuotas_calculadas, 
+            float(factura["precio_mensual"]), 
+            historial_tuplas
+        )
+        
+    except Exception as e:
+        print(f"ERROR en detalle_cobro(): {str(e)}")
+        flash(f"Error al obtener detalles: {str(e)}", "danger")
+        return redirect('/cobros')
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template(
+        "detalle_cobro.html", 
+        factura=factura, 
+        historial=historial_abonos,
+        meses_pago=meses_pago
+    )
+
+@app.route('/registrar_abono', methods=['POST'])
+@Conexion.login_requerido
+def registrar_abono():
+    """Registra un nuevo abono de pago"""
+    if session.get('rango') != 4:
+        flash("Acceso denegado.", "danger")
+        return redirect('/home')
+    
+    factura_id = request.form['factura_id']
+    monto_abono = float(request.form['monto_abono'])
+    mes_correspondiente = int(request.form['mes_correspondiente'])
+    año_correspondiente = int(request.form['año_correspondiente'])
+    observaciones = request.form.get('observaciones', '')
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Obtener información actual de la factura
+        cursor.execute("""
+            SELECT total, COALESCE(monto_abonado, 0), id_cliente
+            FROM factura_venta 
+            WHERE id_factura_venta = %s
+        """, (factura_id,))
+        
+        factura_info = cursor.fetchone()
+        if not factura_info:
+            flash("Factura no encontrada.", "danger")
+            return redirect('/cobros')
+        
+        total_factura, monto_abonado_actual, id_cliente = factura_info
+        nuevo_monto_abonado = monto_abonado_actual + monto_abono
+        saldo_pendiente = total_factura - nuevo_monto_abonado
+        
+        # Obtener ID del cobrador real
+        cursor.execute("""
+            SELECT c.id_cobrador 
+            FROM cobrador c
+            JOIN usuarios u ON TRIM(LOWER(c.nombre)) = TRIM(LOWER(u.nombre))
+            AND COALESCE(TRIM(LOWER(c.apellido)), '') = COALESCE(TRIM(LOWER(u.apellido)), '')
+            WHERE u.id = %s AND u.id_rango = 4
+            LIMIT 1
+        """, (session['user_id'],))
+        
+        cobrador_result = cursor.fetchone()
+        if not cobrador_result:
+            flash("Cobrador no encontrado.", "danger")
+            return redirect('/cobros')
+        
+        id_cobrador = cobrador_result[0]
+        
+        # Registrar el abono
+        cursor.execute("""
+            INSERT INTO abono_venta 
+            (id_factura_venta, id_cliente, id_cobrador, monto_abonado, fecha, 
+            mes_correspondiente, año_correspondiente, saldo_pendiente, observaciones)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (factura_id, id_cliente, id_cobrador, monto_abono, 
+            datetime.today().strftime('%Y-%m-%d'),
+            mes_correspondiente, año_correspondiente, saldo_pendiente, observaciones))
+        
+        # Actualizar la factura
+        nuevo_estado = 'pagado' if saldo_pendiente <= 0 else 'parcial'
+        cursor.execute("""
+            UPDATE factura_venta 
+            SET monto_abonado = %s, estado_pago = %s
+            WHERE id_factura_venta = %s
+        """, (nuevo_monto_abonado, nuevo_estado, factura_id))
+        
+        conn.commit()
+        flash(f"Abono de ${monto_abono:.2f} registrado correctamente.", "success")
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error al registrar abono: {str(e)}", "danger")
+        print(f"ERROR registrar_abono: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(f'/detalle_cobro/{factura_id}')
+
+@app.route('/debug_cobros')
+@Conexion.login_requerido  
+def debug_cobros():
+    """Debug para verificar datos del sistema de cobros"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    resultado = []
+    resultado.append("=== DEBUG SISTEMA DE COBROS ===")
+    resultado.append("")
+    
+    # Información de sesión
+    resultado.append(f"Session user_id: {session.get('user_id')}")
+    resultado.append(f"Session rango: {session.get('rango')}")
+    resultado.append(f"Session nombre: {session.get('nombre')} {session.get('apellido')}")
+    resultado.append("")
+    
+    # Verificar usuario en tabla usuarios
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (session.get('user_id'),))
+    usuario = cursor.fetchone()
+    resultado.append(f"Usuario en BD: {usuario}")
+    resultado.append("")
+    
+    # Verificar cobrador correspondiente usando la lógica mejorada
+    cursor.execute("""
+        SELECT cb.id_cobrador, cb.nombre, cb.apellido, cb.tel, cb.id_zona
+        FROM cobrador cb
+        JOIN usuarios u ON TRIM(LOWER(cb.nombre)) = TRIM(LOWER(u.nombre))
+        AND COALESCE(TRIM(LOWER(cb.apellido)), '') = COALESCE(TRIM(LOWER(u.apellido)), '')
+        WHERE u.id = %s AND u.id_rango = 4
+    """, (session.get('user_id'),))
+    cobrador = cursor.fetchone()
+    
+    if cobrador:
+        resultado.append(f"✓ Cobrador encontrado: ID={cobrador[0]}, Nombre={cobrador[1]} {cobrador[2]}")
+        cobrador_id = cobrador[0]
+        
+        # Verificar ventas asignadas
+        cursor.execute("""
+            SELECT fv.id_factura_venta, fv.id_cobrador, fv.es_credito, fv.total, 
+                   fv.estado_pago, c.nombre as cliente
+            FROM factura_venta fv 
+            JOIN cliente c ON fv.id_cliente = c.id_cliente
+            WHERE fv.id_cobrador = %s
+        """, (cobrador_id,))
+        ventas_cobrador = cursor.fetchall()
+        
+        resultado.append(f"Ventas asignadas al cobrador: {len(ventas_cobrador)}")
+        for venta in ventas_cobrador:
+            resultado.append(f"  - Factura #{venta[0]}, Crédito: {venta[2]}, Total: ${venta[3]}, Cliente: {venta[5]}")
+            
+        # Verificar ventas a crédito específicamente
+        cursor.execute("""
+            SELECT COUNT(*) as total
+            FROM factura_venta 
+            WHERE id_cobrador = %s AND es_credito = 1
+        """, (cobrador_id,))
+        ventas_credito = cursor.fetchone()[0]
+        resultado.append(f"Ventas a crédito: {ventas_credito}")
+        
+    else:
+        resultado.append("✗ NO se encontró cobrador asociado al usuario")
+        
+        # Mostrar comparación detallada
+        cursor.execute("SELECT nombre, apellido FROM usuarios WHERE id = %s", (session.get('user_id'),))
+        usuario_data = cursor.fetchone()
+        cursor.execute("SELECT nombre, apellido FROM cobrador")
+        cobradores_data = cursor.fetchall()
+        
+        resultado.append(f"Usuario buscado: nombre='{usuario_data[0]}', apellido='{usuario_data[1]}'")
+        resultado.append("Cobradores disponibles:")
+        for cb in cobradores_data:
+            resultado.append(f"  - nombre='{cb[0]}', apellido='{cb[1]}'")
+            
+        resultado.append("")
+        resultado.append("SOLUCION SUGERIDA:")
+        resultado.append(f"UPDATE usuarios SET apellido = 'CASTILLO' WHERE id = {session.get('user_id')};")
+    
+    cursor.close()
+    conn.close()
+    
+    return f"<pre>{'<br>'.join(resultado)}</pre>"
+
+
 
 
 # ------------------------

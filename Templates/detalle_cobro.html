@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="cobro-header">
+    <h2>Detalle de Cobro - Factura #{{ factura.id_factura_venta }}</h2>
+    <a href="/cobros" class="btn btn-secondary">← Volver a Cobros</a>
+</div>
+
+<div class="factura-info">
+    <div class="info-section">
+        <h3>Cliente</h3>
+        <p><strong>{{ factura.cliente_nombre }} {{ factura.cliente_apellido }}</strong></p>
+        <p>{{ factura.cliente_telefono or 'Sin teléfono' }}</p>
+        <p>{{ factura.cliente_direccion or 'Sin dirección' }}</p>
+    </div>
+    
+    <div class="info-section">
+        <h3>Producto</h3>
+        <p><strong>{{ factura.producto_nombre }}</strong></p>
+        <p>{{ factura.producto_descripcion or '' }}</p>
+        <p>Fecha: {{ factura.fecha_venta.strftime('%d/%m/%Y') }}</p>
+    </div>
+    
+    <div class="info-section">
+        <h3>Pago</h3>
+        <p><strong>Total:</strong> ${{ "%.2f"|format(factura.total) }}</p>
+        <p><strong>Abonado:</strong> ${{ "%.2f"|format(factura.monto_abonado) }}</p>
+        <p><strong>Saldo:</strong> <span class="saldo">${{ "%.2f"|format(factura.saldo_pendiente) }}</span></p>
+        <p><strong>Estado:</strong> <span class="estado-badge {{ factura.estado_pago }}">{{ factura.estado_pago.title() }}</span></p>
+    </div>
+</div>
+
+<div class="meses-pago">
+    <h3>Estado de Pagos por Mes</h3>
+    <div class="meses-grid">
+        {% for mes in meses_pago %}
+        <div class="mes-card {{ mes.estado }}">
+            <div class="mes-header">
+                <h4>{{ mes.mes_nombre }}</h4>
+                <span class="cuota-numero">Cuota {{ mes.numero }}</span>
+            </div>
+            
+            <div class="mes-info">
+                <p><strong>Esperado:</strong> ${{ "%.2f"|format(mes.cuota_esperada) }}</p>
+                <p><strong>Abonado:</strong> ${{ "%.2f"|format(mes.total_abonado) }}</p>
+                <p><strong>Pendiente:</strong> ${{ "%.2f"|format(mes.pendiente) }}</p>
+            </div>
+            
+            {% if mes.estado != 'pagado' %}
+            <button class="btn-registrar-abono" 
+                    onclick="abrirModalAbono('{{ factura.id_factura_venta }}', '{{ mes.mes }}', '{{ mes.año }}', '{{ mes.pendiente }}')">
+                Registrar Abono
+            </button>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal para Registrar Abono -->
+<div id="modalAbono" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Registrar Abono</h3>
+            <span class="close" onclick="cerrarModalAbono()">&times;</span>
+        </div>
+        
+        <form method="POST" action="/registrar_abono">
+            <input type="hidden" name="factura_id" id="factura_id">
+            <input type="hidden" name="mes_correspondiente" id="mes_correspondiente">
+            <input type="hidden" name="año_correspondiente" id="año_correspondiente">
+            
+            <div class="form-group">
+                <label>Monto del Abono:</label>
+                <input type="number" name="monto_abono" id="monto_abono" 
+                       step="0.01" min="0.01" required>
+                <small id="pendiente_info"></small>
+            </div>
+            
+            <div class="form-group">
+                <label>Observaciones:</label>
+                <textarea name="observaciones" rows="3"></textarea>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="button" onclick="cerrarModalAbono()" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalAbono(facturaId, mes, año, pendiente) {
+    document.getElementById('factura_id').value = facturaId;
+    document.getElementById('mes_correspondiente').value = mes;
+    document.getElementById('año_correspondiente').value = año;
+    document.getElementById('monto_abono').max = pendiente;
+    document.getElementById('pendiente_info').textContent = 
+        `Pendiente: $${parseFloat(pendiente).toFixed(2)}`;
+    document.getElementById('modalAbono').style.display = 'block';
+}
+
+function cerrarModalAbono() {
+    document.getElementById('modalAbono').style.display = 'none';
+}
+</script>
