@@ -4,50 +4,59 @@
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ventas_admin.css') }}">
 </head>
+
 <div class="ventas-container">
     <h2 class="titulo-ventas">📑 Ventas registradas</h2>
-    <table class="tabla-ventas">
 
-        <tr>
-            <th>Cliente</th>
-            <th>Producto</th>
-            <th>Vendedor</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th>Cobrador</th>
-            <th>Acción</th>
-        </tr>
+
+
+    <table class="tabla-ventas">
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th>Producto</th>
+                <th>Vendedor</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Cobrador</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
         {% for venta in ventas %}
-        <tr>
-            <td>{{ venta.cliente }}</td>
-            <td>{{ venta.producto }}</td>
-            <td>{{ venta.vendedor }}</td>
-            <td>{{ venta.fecha }}</td>
-            <td>{{ venta.hora }}</td>
-            <td>
-                {% if venta.cobrador %}
-                    {{ venta.cobrador }}
-                {% else %}
-                    <form class="form-asignacion" method="POST" action="{{ url_for('ventas_admin') }}">
-                        <input class="campo-oculto" type="hidden" name="id_factura" value="{{ venta.id_factura_venta }}">
-                        <select class="select-cobrador" name="id_cobrador" required>
-                            {% for cobrador in cobradores %}
-                            <option value="{{ cobrador[0] }}">{{ cobrador[1] }} {{ cobrador[2] }}</option>
-                            {% endfor %}
-                        </select>
-                        <button class="btn-asignar" type="submit">Asignar</button>
-                    </form>
-                {% endif %}
-            </td>
-            <td>
-                {% if not venta.cobrador %}
-                    <span class="estado-sin-cobrador">⚠️ Sin cobrador asignado</span>
-                {% else %}
-                    <span class="estado-con-cobrador">✅ Cobrador asignado</span>
-                {% endif %}
-            </td>
-        </tr>
+            <tr>
+                <td>{{ venta.cliente }} {{ venta.cliente_apellido }}</td>
+                <td>{{ venta.producto }}</td>
+                <td>{{ venta.vendedor }} {{ venta.vendedor_apellido }}</td>
+                <td>{{ venta.fecha }}</td>
+                <td>{{ venta.hora }}</td>
+                <td>
+                    {% if venta.cobrador %}
+                        {{ venta.cobrador }} {{ venta.cobrador_apellido }}
+                    {% else %}
+                        <form class="form-asignacion" method="POST" action="{{ url_for('ventas_admin') }}">
+                            <input type="hidden" name="id_factura" value="{{ venta.id_factura_venta }}">
+                            <select class="select-cobrador" name="id_cobrador" required>
+                                <option value="" disabled selected>Seleccionar cobrador</option>
+                                {% for cobrador in cobradores %}
+                                <option value="{{ cobrador.id }}">{{ cobrador.nombre }} {{ cobrador.apellido }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn-asignar" type="submit">Asignar</button>
+                        </form>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not venta.cobrador %}
+                        <span class="estado-sin-cobrador">⚠️ Sin cobrador asignado</span>
+                    {% else %}
+                        <span class="estado-con-cobrador">✅ Cobrador asignado</span>
+                    {% endif %}
+                </td>
+            </tr>
         {% endfor %}
+        </tbody>
     </table>
 </div>
+
 {% endblock %}

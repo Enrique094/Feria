@@ -1,6 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cobros.css') }}">
+{% endblock %}
+
 <h2>Sistema de Cobros - {{ session.nombre }}</h2>
 
 <div class="resumen-cobros">
@@ -39,6 +43,7 @@
                     <th>Factura</th>
                     <th>Cliente</th>
                     <th>Producto</th>
+                    <th>Tipo</th>
                     <th>Total</th>
                     <th>Abonado</th>
                     <th>Saldo</th>
@@ -51,13 +56,18 @@
                 <tr class="venta-row {{ venta.estado_pago }}">
                     <td>
                         <strong>#{{ venta.id_factura_venta }}</strong><br>
-                        <small>{{ venta.fecha_venta.strftime('%d/%m/%Y') }}</small>
+                        <small>{{ venta.fecha_venta.strftime('%d/%m/%Y') if venta.fecha_venta.strftime else venta.fecha_venta }}</small>
                     </td>
                     <td>
-                        <strong>{{ venta.cliente_nombre }} {{ venta.cliente_apellido }}</strong><br>
+                        <strong>{{ venta.cliente_nombre }} {{ venta.cliente_apellido or '' }}</strong><br>
                         <small>{{ venta.cliente_telefono or 'Sin teléfono' }}</small>
                     </td>
                     <td>{{ venta.producto_nombre }}</td>
+                    <td>
+                        <span class="tipo-badge {{ 'credito' if venta.tipo_pago == 'Crédito' else 'contado' }}">
+                            {{ venta.tipo_pago }}
+                        </span>
+                    </td>
                     <td class="monto">${{ "%.2f"|format(venta.total) }}</td>
                     <td class="monto">${{ "%.2f"|format(venta.monto_abonado) }}</td>
                     <td class="monto saldo">${{ "%.2f"|format(venta.saldo_pendiente) }}</td>
@@ -67,9 +77,16 @@
                         </span>
                     </td>
                     <td>
-                        <a href="/detalle_cobro/{{ venta.id_factura_venta }}" class="btn btn-primary">
-                            Ver Detalle
-                        </a>
+                        <div class="acciones">
+                            <a href="/detalle_cobro/{{ venta.id_factura_venta }}" class="btn btn-primary">
+                                Ver Detalle
+                            </a>
+                            {% if venta.estado_pago != 'pagado' %}
+                            <a href="/registrar_abono/{{ venta.id_factura_venta }}" class="btn btn-success">
+                                Registrar Abono
+                            </a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -83,105 +100,5 @@
     {% endif %}
 </div>
 
-<style>
-/* Estilos del sistema de cobros */
-.resumen-cobros {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-}
-
-.stat-card h3 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    opacity: 0.9;
-}
-
-.stat-card span {
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.ventas-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.ventas-table th,
-.ventas-table td {
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.ventas-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-}
-
-.venta-row.pendiente { border-left: 4px solid #dc3545; }
-.venta-row.parcial { border-left: 4px solid #ffc107; }
-.venta-row.pagado { border-left: 4px solid #28a745; }
-
-.estado-badge {
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.estado-badge.pendiente { background: #f8d7da; color: #721c24; }
-.estado-badge.parcial { background: #fff3cd; color: #856404; }
-.estado-badge.pagado { background: #d4edda; color: #155724; }
-
-.btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    display: inline-block;
-    transition: all 0.3s;
-}
-
-.btn-primary {
-    background: #007bff;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #0056b3;
-}
-
-.monto {
-    font-weight: 600;
-    text-align: right;
-}
-
-.saldo {
-    color: #dc3545;
-}
-
-.no-ventas {
-    text-align: center;
-    padding: 60px 20px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-</style>
 
 {% endblock %}

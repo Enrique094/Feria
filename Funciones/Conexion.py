@@ -7,7 +7,7 @@ def get_connection():
         host='localhost',
         user='root',
         password='',
-        database='GestorPlus'
+        database='Gestor'
     )
 
 # ------------------------
@@ -31,7 +31,7 @@ def login(Correo, Contraseña):
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT u.id, u.nombre, u.apellido, u.correo, u.contraseña, 
-                       u.id_rango, u.estado, r.nombre 
+                    u.id_rango, u.estado, r.nombre 
                 FROM usuarios u 
                 JOIN rango r ON u.id_rango = r.id_rango 
                 WHERE u.correo=%s AND u.contraseña=%s AND u.estado=1
@@ -48,22 +48,6 @@ def login(Correo, Contraseña):
                 session['rango'] = id_rango
                 session['rango_nombre'] = rango_nombre
                 session['estado'] = estado
-
-                # 🔹 Guardar IDs reales según el rol
-                if id_rango == 2:  # Vendedor
-                    cursor.execute("SELECT id_vendedor FROM vendedor WHERE id_usuario=%s LIMIT 1", (user_id,))
-                    vendedor = cursor.fetchone()
-                    session['vendedor_id'] = vendedor[0] if vendedor else None
-
-                elif id_rango == 3:  # Cliente
-                    cursor.execute("SELECT id_cliente FROM cliente WHERE id_usuario=%s LIMIT 1", (user_id,))
-                    cliente = cursor.fetchone()
-                    session['cliente_id'] = cliente[0] if cliente else None
-
-                elif id_rango == 4:  # Cobrador
-                    cursor.execute("SELECT id_cobrador FROM cobrador WHERE id_usuario=%s LIMIT 1", (user_id,))
-                    cobrador = cursor.fetchone()
-                    session['cobrador_id'] = cobrador[0] if cobrador else None
 
                 cursor.close()
                 conn.close()
@@ -84,107 +68,128 @@ def login(Correo, Contraseña):
 # Registro general y admin
 # ------------------------
 def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
-    if request.method == 'POST':
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-
-            id_rango = int(id_rango)
-
-            # Verificar si ya existe el correo
-            cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
-            if cursor.fetchone():
-                cursor.close()
-                conn.close()
-                flash("❌ El correo ya existe.")
-                return redirect('/register_admin?error=correo_existente')
-
-            # Insertar en usuarios
-            cursor.execute("""
-                INSERT INTO usuarios (nombre, correo, contraseña, id_rango, estado)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (Nombre, Correo, Contraseña, id_rango, 1))
-            conn.commit()
-
-            # 🔹 Guardar el ID de usuario recién creado
-            id_usuario = cursor.lastrowid
-
-            # Insertar en la tabla correspondiente según el rango
-            if datos_extra:
-                if id_rango == 2:  # Cliente
-                    cursor.execute("""
-                        INSERT INTO cliente (id_usuario, nombre, apellido, id_rango, tel, dui, correo, direccion)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (
-                        id_usuario,
-                        Nombre,
-                        datos_extra.get("cliente_apellido", ""),
-                        id_rango,
-                        datos_extra.get("cliente_tel", ""),
-                        datos_extra.get("cliente_dui", ""),
-                        Correo,
-                        datos_extra.get("cliente_direccion", "")
-                    ))
-
-                elif id_rango == 3:  # Vendedor
-                    cursor.execute("""
-                        INSERT INTO vendedor (id_usuario, nombre, apellido, tel, id_rango, id_zona)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (
-                        id_usuario,
-                        Nombre,
-                        datos_extra.get("vendedor_apellido", ""),
-                        datos_extra.get("vendedor_tel", ""),
-                        id_rango,
-                        int(datos_extra.get("vendedor_zona", 1))
-                    ))
-
-                elif id_rango == 4:  # Cobrador
-                    cursor.execute("""
-                        INSERT INTO cobrador (id_usuario, nombre, apellido, tel, id_rango, id_zona)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (
-                        id_usuario,
-                        Nombre,
-                        datos_extra.get("cobrador_apellido", ""),
-                        datos_extra.get("cobrador_tel", ""),
-                        id_rango,
-                        int(datos_extra.get("cobrador_zona", 1))
-                    ))
-
-            conn.commit()
-            cursor.close()
-            conn.close()
-            flash("✅ Registro exitoso.")
-            return redirect('/register_admin?registro=exitoso')
-
-        except Exception as e:
-            print("❌ Error al registrar usuario:", e)
-            flash("❌ Error interno al registrar usuario")
-            return redirect('/register_admin?error=fallo_en_registro')
-
-    return render_template('register_admin.html')
-
-
-# ------------------------
-# Registrar venta
-# ------------------------
-def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora):
+    """
+    Función de registro adaptada para usar solo la tabla usuarios consolidada
+    """
     try:
         conn = get_connection()
         cursor = conn.cursor()
+
+        id_rango = int(id_rango)
+
+        # Verificar si ya existe el correo
+        cursor.execute("SELECT * FROM usuarios WHERE correo=%s", (Correo,))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            flash("❌ El correo ya existe.")
+            return redirect('/register_admin?error=correo_existente')
+
+        # Preparar campos base
+        campos_base = ['nombre', 'correo', 'contraseña', 'id_rango', 'estado']
+        valores_base = [Nombre, Correo, Contraseña, id_rango, 1]
+
+        # Agregar datos extra si existen
+        if datos_extra:
+            if datos_extra.get("apellido"):
+                campos_base.append('apellido')
+                valores_base.append(datos_extra.get("apellido"))
+
+            if datos_extra.get("telefono"):
+                campos_base.append('telefono')
+                valores_base.append(datos_extra.get("telefono"))
+
+            if datos_extra.get("DUI"):
+                campos_base.append('DUI')
+                valores_base.append(datos_extra.get("DUI"))
+
+            if datos_extra.get("direccion"):
+                campos_base.append('direccion')
+                valores_base.append(datos_extra.get("direccion"))
+
+        # Construir query dinámico
+        campos_str = ', '.join(campos_base)
+        placeholders = ', '.join(['%s'] * len(valores_base))
+        query = f"INSERT INTO usuarios ({campos_str}) VALUES ({placeholders})"
+
+        # Ejecutar inserción
+        cursor.execute(query, valores_base)
+        conn.commit()
+
+        # Obtener ID del usuario recién creado
+        id_usuario = cursor.lastrowid
+
+        cursor.close()
+        conn.close()
+
+        # Mensaje de éxito
+        rangos_nombres = {1: 'Administrador', 2: 'Cliente', 3: 'Vendedor', 4: 'Cobrador'}
+        rango_nombre = rangos_nombres.get(id_rango, 'Usuario')
+
+        flash(f"✅ {rango_nombre} '{Nombre}' registrado exitosamente.")
+        return redirect('/register_admin?registro=exitoso')
+
+    except mysql.connector.IntegrityError as e:
+        if 'correo' in str(e):
+            flash("❌ El correo ya está registrado.")
+        elif 'DUI' in str(e):
+            flash("❌ El DUI ya está registrado.")
+        else:
+            flash("❌ Ya existe un registro con esos datos.")
+        print(f"❌ Error de integridad: {e}")
+        return redirect('/register_admin?error=datos_duplicados')
+
+    except Exception as e:
+        print(f"❌ Error al registrar usuario: {e}")
+        flash(f"❌ Error interno al registrar usuario: {str(e)}")
+        return redirect('/register_admin?error=fallo_en_registro')
+
+def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora, total=0, cuotas=1, precio_mensual=0, interes_aplicado=0, es_credito=0, direccion=""):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Obtener un cobrador por defecto (el primero disponible)
+        cursor.execute("SELECT id FROM usuarios WHERE id_rango = 4 AND estado = 1 LIMIT 1")
+        cobrador_result = cursor.fetchone()
+        if not cobrador_result:
+            print("❌ No hay cobradores disponibles")
+            return False
+        
+        id_cobrador = cobrador_result[0]
+        
+        # USAR LOS NOMBRES CORRECTOS DE LAS COLUMNAS DE TU BD
         cursor.execute("""
-            INSERT INTO factura_venta (id_cliente, id_vende, id_product, fecha, hora)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (id_cliente, id_vendedor, id_producto, fecha, hora))
+            INSERT INTO factura_venta (
+                id_cliente, id_cobrador, id_vendedor, id_product, interes_aplicado, es_credito,
+                estado_pago, monto_abonado, total, cuotas, precio_mensual,
+                fecha, hora, direccion
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            id_cliente, id_cobrador, id_vendedor, id_producto, interes_aplicado, es_credito,
+            'pendiente', 0.00, total, cuotas, precio_mensual,
+            fecha, hora, direccion
+        ))
+
         conn.commit()
         cursor.close()
         conn.close()
         return True
+        
     except Exception as e:
-        print("❌ Error al registrar venta:", e)
+        print(f"❌ Error al registrar venta: {e}")
+        if conn:
+            conn.rollback()
+        cursor.close()
+        conn.close()
         return False
 
+
+
+
+
+# ------------------------
 # ------------------------
 # Logout
 # ------------------------
@@ -197,28 +202,39 @@ def logout():
     session.pop('estado', None)
     return redirect('/login')
 
+
+
 def obtener_ventas():
+    """Obtener ventas con nombres de columnas correctos"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT fv.id_factura_venta, fv.fecha, fv.hora, fv.total, fv.cuotas, fv.precio_mensual,
-               c.nombre AS cliente, 
-               p.nombre AS producto, 
-               v.nombre AS vendedor, 
-               cb.nombre AS cobrador
-        FROM factura_venta fv
-        JOIN cliente c ON fv.id_cliente = c.id_cliente
-        JOIN producto p ON fv.id_product = p.id_product
-        JOIN vendedor v ON fv.id_vende = v.id_vende
-        LEFT JOIN cobrador cb ON fv.id_cobrador = cb.id_cobrador
-    """)
-    ventas = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return ventas
+    try:
+        cursor.execute("""
+            SELECT fv.id_factura_venta, fv.fecha, fv.hora, fv.total, fv.cuotas, fv.precio_mensual,
+                   fv.estado_pago, fv.monto_abonado,
+                   cli.nombre AS cliente, cli.apellido AS cliente_apellido,
+                   p.nombre AS producto, 
+                   ven.nombre AS vendedor, ven.apellido AS vendedor_apellido,
+                   cb.nombre AS cobrador, cb.apellido AS cobrador_apellido
+            FROM factura_venta fv
+            JOIN usuarios cli ON fv.id_cliente = cli.id
+            JOIN producto p ON fv.id_product = p.id_product
+            JOIN usuarios ven ON fv.id_vendedor = ven.id
+            LEFT JOIN usuarios cb ON fv.id_cobrador = cb.id
+            ORDER BY fv.fecha DESC, fv.hora DESC
+        """)
+        ventas = cursor.fetchall()
+        return ventas
+    except Exception as e:
+        print(f"❌ Error al obtener ventas: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
-
-
+# ------------------------
+# Asignar cobrador
+# ------------------------
 def asignar_cobrador(id_factura_venta, id_cobrador):
     conn = get_connection()
     cursor = conn.cursor()
@@ -231,6 +247,7 @@ def asignar_cobrador(id_factura_venta, id_cobrador):
     cursor.close()
     conn.close()
     return True
+
 
 def obtener_cobradores():
     conn = get_connection()

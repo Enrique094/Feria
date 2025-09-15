@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+{% block content %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/abonos.css') }}">
+{% endblock %}
+
+<div class="breadcrumb">
+    <a href="/cobros">← Volver a Cobros</a>
+</div>
+
+<h2>Registrar Abono</h2>
+
+<div class="factura-info">
+    <h3>Información de la Factura</h3>
+    <div class="info-grid">
+        <div class="info-item">
+            <label>Factura:</label>
+            <span>#{{ factura.id_factura_venta }}</span>
+        </div>
+        <div class="info-item">
+            <label>Cliente:</label>
+            <span>{{ factura.cliente_nombre }} {{ factura.cliente_apellido }}</span>
+        </div>
+        <div class="info-item">
+            <label>Producto:</label>
+            <span>{{ factura.producto_nombre }}</span>
+        </div>
+        <div class="info-item">
+            <label>Total:</label>
+            <span>${{ "%.2f"|format(factura.total) }}</span>
+        </div>
+        <div class="info-item">
+            <label>Abonado:</label>
+            <span>${{ "%.2f"|format(factura.monto_abonado or 0) }}</span>
+        </div>
+        <div class="info-item saldo-destacado">
+            <label>Saldo Pendiente:</label>
+            <span class="saldo-valor">${{ "%.2f"|format(factura.saldo_pendiente) }}</span>
+        </div>
+    </div>
+</div>
+
+
+<form method="POST" class="abono-form">
+    <div class="form-group">
+        <label for="monto_abono">Monto del Abono *</label>
+        <div class="input-container">
+            <span class="currency">$</span>
+            <input type="number" 
+                   id="monto_abono" 
+                   name="monto_abono" 
+                   step="0.01" 
+                   min="0.01" 
+                   max="{{ factura.saldo_pendiente }}"
+                   required 
+                   placeholder="0.00"
+                   onchange="actualizarSaldoRestante()">
+        </div>
+        <small class="help-text">Máximo: ${{ "%.2f"|format(factura.saldo_pendiente) }}</small>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="mes_correspondiente">Mes *</label>
+            <select id="mes_correspondiente" name="mes_correspondiente" required>
+                <option value="">Seleccionar mes</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="año_correspondiente">Año *</label>
+            <select id="año_correspondiente" name="año_correspondiente" required>
+                <option value="">Seleccionar año</option>
+                {% for año in range(2024, 2030) %}
+                <option value="{{ año }}" {% if año == 2025 %}selected{% endif %}>{{ año }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" 
+                name="observaciones" 
+                rows="3" 
+                placeholder="Notas adicionales sobre el abono (opcional)..."></textarea>
+    </div>
+
+    <div class="saldo-calculado" id="saldo-calculado" style="display: none;">
+        <h4>Después del abono:</h4>
+        <p>Saldo restante: <span class="saldo-restante" id="saldo-restante">$0.00</span></p>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Registrar Abono</button>
+        <a href="/detalle_cobro/{{ factura.id_factura_venta }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+
+<script>
+function actualizarSaldoRestante() {
+    const montoInput = document.getElementById('monto_abono');
+    const saldoCalculado = document.getElementById('saldo-calculado');
+    const saldoRestante = document.getElementById('saldo-restante');
+    
+    const monto = parseFloat(montoInput.value) || 0;
+    const saldoActual = parseFloat('{{ "%.2f"|format(factura.saldo_pendiente) }}');
+    const nuevoSaldo = Math.max(0, saldoActual - monto);
+    
+    if (monto > 0) {
+        saldoCalculado.style.display = 'block';
+        saldoRestante.textContent = `$${nuevoSaldo.toFixed(2)}`;
+        
+        if (nuevoSaldo <= 0.01) {
+            saldoRestante.style.color = '#28a745';
+            saldoRestante.innerHTML += ' <strong>(PAGADO)</strong>';
+        } else {
+            saldoRestante.style.color = '#dc3545';
+        }
+    } else {
+        saldoCalculado.style.display = 'none';
+    }
+}
+
+// ✅ Esto debe estar fuera de la función
+document.addEventListener('DOMContentLoaded', function() {
+    const mesActual = new Date().getMonth() + 1;
+    document.getElementById('mes_correspondiente').value = mesActual;
+});
+</script>
+
+{% endblock %}

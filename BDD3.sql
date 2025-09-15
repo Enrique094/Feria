@@ -20,6 +20,7 @@ CREATE TABLE usuarios (
     nombre VARCHAR(100),
     apellido VARCHAR(100),
     correo VARCHAR(100) UNIQUE,
+    telefono VARCHAR(15),
     contraseña VARCHAR(255),
     DUI VARCHAR(10) UNIQUE,
     direccion VARCHAR(80),
@@ -34,7 +35,7 @@ CREATE TABLE producto (
     id_catego INT NOT NULL,
     nombre VARCHAR(30),
     descripcion VARCHAR(200), 
-    precio INT NOT NULL,
+    precio decimal(10,2) DEFAULT NULL,
     imagen BOOLEAN DEFAULT 0, 
     imagen_blob MEDIUMBLOB,
     stock INT DEFAULT 0, 
@@ -51,7 +52,9 @@ CREATE TABLE intereses (
 --  Factura de Venta
 CREATE TABLE factura_venta (
     id_factura_venta INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
+    id_cliente INT NOT NULL,
+    id_cobrador INT NOT NULL,
+    id_vendedor INT NOT NULL,
     id_product INT NOT NULL,
     interes_aplicado DECIMAL(5,2) NOT NULL,
     es_credito DECIMAL NOT NULL DEFAULT 0,
@@ -63,7 +66,9 @@ CREATE TABLE factura_venta (
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
     direccion VARCHAR(100) NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id),
+    FOREIGN KEY (id_cliente) REFERENCES usuarios(id),
+    FOREIGN KEY (id_cobrador) REFERENCES usuarios(id),
+    FOREIGN KEY (id_vendedor) REFERENCES usuarios(id),
     FOREIGN KEY (id_product) REFERENCES producto(id_product)
 );
 
@@ -72,7 +77,7 @@ CREATE TABLE factura_cobro (
     id_factura_cobro INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
     fecha DATE NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id),
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
 );
 
 --  Abono sobre factura de venta
@@ -87,5 +92,5 @@ CREATE TABLE abono_venta (
     observaciones VARCHAR(200) NULL,
     fecha DATE NOT NULL,
     FOREIGN KEY (id_factura_venta) REFERENCES factura_venta(id_factura_venta),
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
 );

@@ -2,6 +2,7 @@
 GestorPlus
 
 # Agregar a la BDD
+Usar la BDD llamada gestor.sql
 --Asegurar que el id rango esten asignados del 1 al 4
 
 INSERT INTO rango (nombre) VALUES
@@ -10,9 +11,7 @@ INSERT INTO rango (nombre) VALUES
 ('Vendedor'),
 ('Cobrador');
 
-INSERT INTO `usuarios` (`id`, `nombre`, `apellido`, `correo`, `contraseña`, `estado`, `id_rango`) VALUES (NULL, 'Admin', NULL, 'Admin@gmail.com', '1234', '1', '1');
-
-INSERT INTO `zona` (`id_zona`, `nombre`) VALUES (NULL, 'Centro'), (NULL, 'Norte'), (NULL, 'Sur'), (NULL, 'Este'), (NULL, 'Oeste');
+INSERT INTO `usuarios` (`id`, `nombre`, `apellido`, `correo`, `telefono`, `contraseña`, `DUI`, `direccion`, `estado`, `id_rango`) VALUES (NULL, 'Admin', NULL, 'admin@gmail.com', NULL, '1234', NULL, NULL, '1', '1');
 
 INSERT INTO `categoria` (`id_categoria`, `nombre`, `descripcion`) VALUES (NULL, 'Ropa', 'Vestidos, uniformes'), (NULL, 'Electrodomesticos', 'Dispositivos electrónicos');
 

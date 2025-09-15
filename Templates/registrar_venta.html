@@ -14,21 +14,21 @@
         <select name="cliente" required>
             <option value="">Seleccione un cliente</option>
             {% for cliente in clientes %}
-                <option value="{{ cliente[0] }}">{{ cliente[1] }}</option>
+                <option value="{{ cliente[0] }}">{{ cliente[1] }} {{ cliente[2] if cliente[2] else '' }}</option>
             {% endfor %}
         </select>
     </div>
 
     <div class="form-group">
-        <label>Producto:</label>
-        <select name="producto" id="producto" required onchange="mostrarPrecio()">
-            <option value="">Seleccione un producto</option>
+        <label>Productos:</label>
+        <select name="productos" id="productos" multiple required onchange="calcularTotalProductos()">
             {% for producto in productos %}
                 <option value="{{ producto[0] }}" data-precio="{{ producto[2] }}">
                     {{ producto[1] }} - ${{ "%.2f"|format(producto[2]) }}
                 </option>
             {% endfor %}
         </select>
+        <small>Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples productos</small>
     </div>
 
     <div class="form-group">
@@ -52,7 +52,7 @@
 
     <div class="form-group" id="credito-options" style="display: none;">
         <label>Plazo (meses):</label>
-        <select name="meses" id="meses" onchange="calcularTotal()">
+        <select name="meses" id="meses" onchange="calcularTotalProductos()">
             <option value="">Seleccione plazo</option>
             {% for opcion in opciones_credito %}
                 <option value="{{ opcion[0] }}" data-interes="{{ opcion[1] }}">
@@ -65,7 +65,7 @@
     <div class="form-group" id="resumen-pago" style="display: none;">
         <div class="resumen-container">
             <h4>Resumen de la venta:</h4>
-            <p><strong>Precio del producto:</strong> $<span id="precio-base">0.00</span></p>
+            <p><strong>Precio total productos:</strong> $<span id="precio-base">0.00</span></p>
             <p><strong>Interés aplicado:</strong> <span id="interes-aplicado">0%</span></p>
             <p><strong>Total a pagar:</strong> $<span id="total-pagar">0.00</span></p>
             <p><strong>Número de cuotas:</strong> <span id="num-cuotas">1</span></p>
@@ -91,34 +91,28 @@ function toggleCreditoOptions() {
         mesesSelect.value = '';
     }
     
-    calcularTotal();
+    calcularTotalProductos();
 }
 
-function mostrarPrecio() {
-    const productoSelect = document.getElementById('producto');
-    const selectedOption = productoSelect.options[productoSelect.selectedIndex];
-    
-    if (selectedOption && selectedOption.dataset.precio) {
-        document.getElementById('precio-base').textContent = 
-            parseFloat(selectedOption.dataset.precio).toFixed(2);
-        calcularTotal();
-    }
-}
-
-function calcularTotal() {
-    const productoSelect = document.getElementById('producto');
+function calcularTotalProductos() {
+    const productosSelect = document.getElementById('productos');
     const contadoRadio = document.getElementById('contado');
     const mesesSelect = document.getElementById('meses');
     const resumenPago = document.getElementById('resumen-pago');
     
-    const selectedProducto = productoSelect.options[productoSelect.selectedIndex];
+    // Calcular precio total de productos seleccionados
+    let precioBase = 0;
+    const selectedOptions = Array.from(productosSelect.selectedOptions);
     
-    if (!selectedProducto || !selectedProducto.dataset.precio) {
+    if (selectedOptions.length === 0) {
         resumenPago.style.display = 'none';
         return;
     }
     
-    const precioBase = parseFloat(selectedProducto.dataset.precio);
+    selectedOptions.forEach(option => {
+        precioBase += parseFloat(option.dataset.precio);
+    });
+    
     let total = precioBase;
     let interes = 0;
     let cuotas = 1;
@@ -135,6 +129,7 @@ function calcularTotal() {
     }
     
     // Actualizar resumen
+    document.getElementById('precio-base').textContent = precioBase.toFixed(2);
     document.getElementById('interes-aplicado').textContent = interes + '%';
     document.getElementById('total-pagar').textContent = total.toFixed(2);
     document.getElementById('num-cuotas').textContent = cuotas;

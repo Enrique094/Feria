@@ -1,0 +1,161 @@
+/* Estilos del sistema de cobros */
+.resumen-cobros {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-card span {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.ventas-container {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.ventas-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ventas-table th,
+.ventas-table td {
+    padding: 15px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.ventas-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+}
+
+.venta-row.pendiente { border-left: 4px solid #dc3545; }
+.venta-row.parcial { border-left: 4px solid #ffc107; }
+.venta-row.pagado { border-left: 4px solid #28a745; }
+
+.venta-row:hover {
+    background-color: #f8f9fa;
+}
+
+.estado-badge, .tipo-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.estado-badge.pendiente { background: #f8d7da; color: #721c24; }
+.estado-badge.parcial { background: #fff3cd; color: #856404; }
+.estado-badge.pagado { background: #d4edda; color: #155724; }
+
+.tipo-badge.credito { background: #e7f3ff; color: #0066cc; }
+.tipo-badge.contado { background: #e8f5e8; color: #2d6a2d; }
+
+.acciones {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+}
+
+.monto {
+    font-weight: 600;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+.saldo {
+    color: #dc3545;
+}
+
+.no-ventas {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.no-ventas h3 {
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .ventas-table {
+        font-size: 12px;
+    }
+    
+    .ventas-table th,
+    .ventas-table td {
+        padding: 8px 6px;
+    }
+    
+    .acciones {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .btn {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}

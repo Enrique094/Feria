@@ -1,6 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/detalle_cobro.css') }}">
+{% endblock %}
+
 <div class="cobro-header">
     <h2>Detalle de Cobro - Factura #{{ factura.id_factura_venta }}</h2>
     <a href="/cobros" class="btn btn-secondary">← Volver a Cobros</a>
@@ -9,29 +13,61 @@
 <div class="factura-info">
     <div class="info-section">
         <h3>Cliente</h3>
-        <p><strong>{{ factura.cliente_nombre }} {{ factura.cliente_apellido }}</strong></p>
-        <p>{{ factura.cliente_telefono or 'Sin teléfono' }}</p>
-        <p>{{ factura.cliente_direccion or 'Sin dirección' }}</p>
+        <p><strong>{{ factura.cliente_nombre }} {{ factura.cliente_apellido or '' }}</strong></p>
+        <p>📞 {{ factura.cliente_telefono or 'Sin teléfono' }}</p>
+        <p>📍 {{ factura.cliente_direccion or 'Sin dirección' }}</p>
+        {% if factura.cliente_dui %}
+        <p>🆔 DUI: {{ factura.cliente_dui }}</p>
+        {% endif %}
     </div>
     
     <div class="info-section">
         <h3>Producto</h3>
         <p><strong>{{ factura.producto_nombre }}</strong></p>
-        <p>{{ factura.producto_descripcion or '' }}</p>
-        <p>Fecha: {{ factura.fecha_venta.strftime('%d/%m/%Y') }}</p>
+        {% if factura.producto_descripcion %}
+        <p>{{ factura.producto_descripcion }}</p>
+        {% endif %}
+        <p>💰 Precio original: ${{ "%.2f"|format(factura.precio_producto) }}</p>
+        <p>📅 Fecha venta: {{ factura.fecha_venta.strftime('%d/%m/%Y') if factura.fecha_venta.strftime else factura.fecha_venta }}</p>
     </div>
     
-    <div class="info-section">
-        <h3>Pago</h3>
-        <p><strong>Total:</strong> ${{ "%.2f"|format(factura.total) }}</p>
-        <p><strong>Abonado:</strong> ${{ "%.2f"|format(factura.monto_abonado) }}</p>
-        <p><strong>Saldo:</strong> <span class="saldo">${{ "%.2f"|format(factura.saldo_pendiente) }}</span></p>
-        <p><strong>Estado:</strong> <span class="estado-badge {{ factura.estado_pago }}">{{ factura.estado_pago.title() }}</span></p>
+    <div class="info-section payment-summary">
+        <h3>Resumen de Pago</h3>
+        <div class="payment-details">
+            <div class="payment-item">
+                <span>Total:</span>
+                <span class="amount">${{ "%.2f"|format(factura.total) }}</span>
+            </div>
+            <div class="payment-item">
+                <span>Abonado:</span>
+                <span class="amount abonado">${{ "%.2f"|format(factura.monto_abonado) }}</span>
+            </div>
+            <div class="payment-item destacado">
+                <span>Saldo Pendiente:</span>
+                <span class="amount saldo">${{ "%.2f"|format(factura.saldo_pendiente) }}</span>
+            </div>
+            <div class="payment-item">
+                <span>Estado:</span>
+                <span class="estado-badge {{ factura.estado_pago }}">{{ factura.estado_pago.title() }}</span>
+            </div>
+            {% if factura.es_credito %}
+            <div class="payment-item">
+                <span>Cuotas:</span>
+                <span>{{ factura.cuotas }} meses</span>
+            </div>
+            <div class="payment-item">
+                <span>Pago mensual:</span>
+                <span class="amount">${{ "%.2f"|format(factura.precio_mensual) }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
     </div>
 </div>
 
+{% if meses_pago and factura.es_credito %}
 <div class="meses-pago">
-    <h3>Estado de Pagos por Mes</h3>
+    <h3>📊 Estado de Pagos por Mes</h3>
     <div class="meses-grid">
         {% for mes in meses_pago %}
         <div class="mes-card {{ mes.estado }}">
@@ -41,67 +77,72 @@
             </div>
             
             <div class="mes-info">
-                <p><strong>Esperado:</strong> ${{ "%.2f"|format(mes.cuota_esperada) }}</p>
-                <p><strong>Abonado:</strong> ${{ "%.2f"|format(mes.total_abonado) }}</p>
-                <p><strong>Pendiente:</strong> ${{ "%.2f"|format(mes.pendiente) }}</p>
+                <div class="info-row">
+                    <span>Esperado:</span>
+                    <span class="amount">${{ "%.2f"|format(mes.cuota_esperada) }}</span>
+                </div>
+                <div class="info-row">
+                    <span>Abonado:</span>
+                    <span class="amount abonado">${{ "%.2f"|format(mes.total_abonado) }}</span>
+                </div>
+                <div class="info-row">
+                    <span>Pendiente:</span>
+                    <span class="amount pendiente">${{ "%.2f"|format(mes.pendiente) }}</span>
+                </div>
             </div>
             
-            {% if mes.estado != 'pagado' %}
-            <button class="btn-registrar-abono" 
-                    onclick="abrirModalAbono('{{ factura.id_factura_venta }}', '{{ mes.mes }}', '{{ mes.año }}', '{{ mes.pendiente }}')">
-                Registrar Abono
-            </button>
+            {% if mes.abonos %}
+            <div class="abonos-detalle">
+                <small>Abonos registrados:</small>
+                {% for abono in mes.abonos %}
+                <div class="abono-item">
+                    <span>${{ "%.2f"|format(abono.monto) }}</span>
+                    <small>{{ abono.fecha.strftime('%d/%m') if abono.fecha.strftime else abono.fecha }}</small>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
         </div>
         {% endfor %}
     </div>
 </div>
+{% endif %}
 
-<!-- Modal para Registrar Abono -->
-<div id="modalAbono" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Registrar Abono</h3>
-            <span class="close" onclick="cerrarModalAbono()">&times;</span>
-        </div>
-        
-        <form method="POST" action="/registrar_abono">
-            <input type="hidden" name="factura_id" id="factura_id">
-            <input type="hidden" name="mes_correspondiente" id="mes_correspondiente">
-            <input type="hidden" name="año_correspondiente" id="año_correspondiente">
-            
-            <div class="form-group">
-                <label>Monto del Abono:</label>
-                <input type="number" name="monto_abono" id="monto_abono" 
-                       step="0.01" min="0.01" required>
-                <small id="pendiente_info"></small>
-            </div>
-            
-            <div class="form-group">
-                <label>Observaciones:</label>
-                <textarea name="observaciones" rows="3"></textarea>
-            </div>
-            
-            <div class="modal-buttons">
-                <button type="button" onclick="cerrarModalAbono()" class="btn btn-secondary">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Registrar</button>
-            </div>
-        </form>
+{% if historial %}
+<div class="historial-abonos">
+    <h3>📋 Historial de Abonos</h3>
+    <div class="historial-tabla">
+        <table class="tabla-abonos">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Monto</th>
+                    <th>Mes/Año</th>
+                    <th>Saldo Después</th>
+                    <th>Observaciones</th>
+                    <th>Registrado por</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for abono in historial %}
+                <tr>
+                    <td>{{ abono.fecha.strftime('%d/%m/%Y') if abono.fecha.strftime else abono.fecha }}</td>
+                    <td class="amount">${{ "%.2f"|format(abono.monto_abonado) }}</td>
+                    <td>{{ abono.mes_correspondiente }}/{{ abono.año_correspondiente }}</td>
+                    <td class="amount">${{ "%.2f"|format(abono.saldo_pendiente) }}</td>
+                    <td>{{ abono.observaciones or '-' }}</td>
+                    <td>{{ abono.usuario_registro or 'Sistema' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
+{% else %}
+<div class="no-historial">
+    <p>📝 No hay abonos registrados para esta factura</p>
+</div>
+{% endif %}
 
-<script>
-function abrirModalAbono(facturaId, mes, año, pendiente) {
-    document.getElementById('factura_id').value = facturaId;
-    document.getElementById('mes_correspondiente').value = mes;
-    document.getElementById('año_correspondiente').value = año;
-    document.getElementById('monto_abono').max = pendiente;
-    document.getElementById('pendiente_info').textContent = 
-        `Pendiente: $${parseFloat(pendiente).toFixed(2)}`;
-    document.getElementById('modalAbono').style.display = 'block';
-}
 
-function cerrarModalAbono() {
-    document.getElementById('modalAbono').style.display = 'none';
-}
-</script>
+{% endblock %}
