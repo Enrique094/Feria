@@ -121,6 +121,7 @@
                     <th>Saldo Después</th>
                     <th>Observaciones</th>
                     <th>Registrado por</th>
+                    <th>acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -133,6 +134,13 @@
                     <td>{{ abono.observaciones or '-' }}</td>
                     <td>{{ abono.usuario_registro or 'Sistema' }}</td>
                 </tr>
+                <td>
+                    <div class="acciones-recibo">
+                        <a href="/ver_recibo/{{ abono.id_abono }}" class="btn-recibo ver" target="_blank" title="Ver recibo">TarjetaDeControl👁️</a>
+                        <a href="/generar_recibo/{{ abono.id_abono }}" class="btn-recibo descargar" title="Descargar recibo">TarjetaDeControl📄</a>
+                    </div>
+                </td>
+                
                 {% endfor %}
             </tbody>
         </table>
