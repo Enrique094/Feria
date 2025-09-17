@@ -261,6 +261,204 @@ def obtener_cobradores():
     conn.close()
     return cobradores
 
+def obtener_ventas_filtradas(id_cobrador=None, fecha_inicio=None, fecha_fin=None):
+    """Obtener ventas filtradas por cobrador y/o rango de fechas"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_venta,
+                fv.hora,
+                fv.total,
+                fv.es_credito,
+                fv.estado_pago,
+                fv.cuotas,
+                fv.precio_mensual,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                cli.nombre AS cliente_nombre,
+                cli.apellido AS cliente_apellido,
+                p.nombre AS producto_nombre,
+                ven.nombre AS vendedor_nombre,
+                ven.apellido AS vendedor_apellido,
+                cob.nombre AS cobrador_nombre,
+                cob.apellido AS cobrador_apellido
+            FROM factura_venta fv
+            JOIN usuarios cli ON fv.id_cliente = cli.id
+            JOIN producto p ON fv.id_product = p.id_product
+            JOIN usuarios ven ON fv.id_vendedor = ven.id
+            LEFT JOIN usuarios cob ON fv.id_cobrador = cob.id
+            WHERE 1=1
+        """
+        params = []
+
+        if id_cobrador:
+            query += " AND fv.id_cobrador = %s"
+            params.append(id_cobrador)
+
+        if fecha_inicio and fecha_fin:
+            query += " AND fv.fecha BETWEEN %s AND %s"
+            params.extend([fecha_inicio, fecha_fin])
+
+        query += " ORDER BY fv.fecha DESC, fv.hora DESC"
+
+        cursor.execute(query, tuple(params))
+        ventas = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+        return ventas
+
+    except Exception as e:
+        print(f"ERROR en obtener_ventas_filtradas: {e}")
+        return []
+    
+def obtener_todas_las_ventas():
+    """Obtener todas las ventas con información completa"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_venta,
+                fv.hora,
+                fv.total,
+                fv.es_credito,
+                fv.estado_pago,
+                fv.cuotas,
+                fv.precio_mensual,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                cli.nombre AS cliente_nombre,
+                cli.apellido AS cliente_apellido,
+                cli.telefono AS cliente_telefono,
+                p.nombre AS producto_nombre,
+                ven.nombre AS vendedor_nombre,
+                ven.apellido AS vendedor_apellido,
+                cob.nombre AS cobrador_nombre,
+                cob.apellido AS cobrador_apellido
+            FROM factura_venta fv
+            JOIN usuarios cli ON fv.id_cliente = cli.id
+            JOIN producto p ON fv.id_product = p.id_product
+            JOIN usuarios ven ON fv.id_vendedor = ven.id
+            LEFT JOIN usuarios cob ON fv.id_cobrador = cob.id
+            ORDER BY fv.fecha DESC, fv.hora DESC
+        """)
+        
+        ventas = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return ventas
+        
+    except Exception as e:
+        print(f"ERROR en obtener_todas_las_ventas: {e}")
+        return []
+
+
+def obtener_ventas_por_cobrador(id_cobrador):
+    """Obtener ventas asignadas a un cobrador específico"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_venta,
+                fv.total,
+                fv.estado_pago,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
+                cli.nombre AS cliente_nombre,
+                cli.apellido AS cliente_apellido,
+                cli.telefono AS cliente_telefono,
+                cli.direccion AS cliente_direccion,
+                p.nombre AS producto_nombre
+            FROM factura_venta fv
+            JOIN usuarios cli ON fv.id_cliente = cli.id
+            JOIN producto p ON fv.id_product = p.id_product
+            WHERE fv.id_cobrador = %s
+            ORDER BY fv.estado_pago ASC, fv.fecha DESC
+        """, (id_cobrador,))
+        
+        ventas = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return ventas
+        
+    except Exception as e:
+        print(f"ERROR en obtener_ventas_por_cobrador: {e}")
+        return []
+    
+def obtener_compras_cliente(id_cliente):
+    """Obtener todas las compras de un cliente específico"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_compra,
+                fv.total,
+                fv.es_credito,
+                fv.estado_pago,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
+                p.nombre AS producto_nombre
+            FROM factura_venta fv
+            JOIN producto p ON fv.id_product = p.id_product
+            WHERE fv.id_cliente = %s
+            ORDER BY fv.fecha DESC
+        """, (id_cliente,))
+        
+        compras = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return compras
+        
+    except Exception as e:
+        print(f"ERROR en obtener_compras_cliente: {e}")
+        return []
+
+
+def obtener_estadisticas_cliente(id_cliente):
+    """Obtener estadísticas de compras de un cliente"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_compras,
+                COUNT(CASE WHEN estado_pago = 'pagado' THEN 1 END) as pagadas,
+                COUNT(CASE WHEN estado_pago != 'pagado' THEN 1 END) as pendientes,
+                COALESCE(SUM(total), 0) as total_gastado,
+                COALESCE(SUM(CASE WHEN estado_pago != 'pagado' 
+                    THEN (total - COALESCE(monto_abonado, 0)) ELSE 0 END), 0) as total_pendiente
+            FROM factura_venta
+            WHERE id_cliente = %s
+        """, (id_cliente,))
+        
+        stats = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return stats or {}
+        
+    except Exception as e:
+        print(f"ERROR en obtener_estadisticas_cliente: {e}")
+        return {}
+
+
+
+
+
+
+
+
 
 
 

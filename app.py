@@ -29,7 +29,6 @@ def admin_required(f):
 
 def to_float(value):
     """Convierte valores Decimal o string a float de manera segura"""
-    from decimal import Decimal
     if isinstance(value, Decimal):
         return float(value)
     elif isinstance(value, str):
@@ -558,7 +557,7 @@ def ventas_admin():
         flash("❌ No tienes permisos para acceder a esta página.", "danger")
         return redirect('/home')
 
-    # Obtener lista de cobradores desde usuarios
+    # Obtener lista de cobradores (usuarios rango=4)
     conn = Conexion.get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
@@ -570,20 +569,32 @@ def ventas_admin():
     cursor.close()
     conn.close()
 
-    # Obtener todas las ventas
-    ventas = Conexion.obtener_ventas()
+    # 📌 Capturar filtros desde GET
+    id_cobrador = request.args.get("id_cobrador")
+    fecha_inicio = request.args.get("fecha_inicio")
+    fecha_fin = request.args.get("fecha_fin")
 
+    # 📌 Usar filtros si existen
+    if id_cobrador or (fecha_inicio and fecha_fin):
+        ventas = Conexion.obtener_ventas_filtradas(id_cobrador, fecha_inicio, fecha_fin)
+    else:
+        ventas = Conexion.obtener_todas_las_ventas()
+
+    # 📌 POST = asignar cobrador
     if request.method == 'POST':
         id_factura = request.form['id_factura']
-        id_cobrador = request.form['id_cobrador']
-        Conexion.asignar_cobrador(id_factura, id_cobrador)
+        id_cobrador_asignado = request.form['id_cobrador']
+        Conexion.asignar_cobrador(id_factura, id_cobrador_asignado)
         flash("✅ Cobrador asignado correctamente.", "success")
         return redirect('/ventas_admin')
 
-    return render_template("ventas_admin.html", ventas=ventas, cobradores=cobradores)
+    return render_template(
+        "ventas_admin.html",
+        ventas=ventas,
+        cobradores=cobradores
+    )
 
-# Cobrar
-
+##Cobros
 @app.route('/cobros')
 @Conexion.login_requerido
 def cobros():
@@ -982,6 +993,242 @@ def debug_cobros():
     cursor.close()
     conn.close()
     return f"<pre>{'<br>'.join(resultado)}</pre>"
+
+@app.route('/mis_compras')
+@Conexion.login_requerido
+def mis_compras():
+    """Panel principal del cliente - vista general de sus compras"""
+    if session.get('rango') != 2:  # Solo clientes
+        flash("Acceso denegado. Solo clientes pueden acceder.", "danger")
+        return redirect('/home')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Obtener todas las compras del cliente
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_compra,
+                fv.total,
+                fv.es_credito,
+                fv.estado_pago,
+                fv.cuotas,
+                fv.precio_mensual,
+                COALESCE(fv.monto_abonado, 0) AS monto_abonado,
+                (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
+                p.nombre AS producto_nombre,
+                p.descripcion AS producto_descripcion,
+                p.precio AS precio_original,
+                ven.nombre AS vendedor_nombre,
+                ven.apellido AS vendedor_apellido
+            FROM factura_venta fv
+            JOIN producto p ON fv.id_product = p.id_product
+            JOIN usuarios ven ON fv.id_vendedor = ven.id
+            WHERE fv.id_cliente = %s
+            ORDER BY fv.fecha DESC, fv.id_factura_venta DESC
+        """, (session['user_id'],))
+        
+        compras = cursor.fetchall()
+        
+        # Calcular estadísticas
+        total_compras = len(compras)
+        compras_pagadas = len([c for c in compras if c['estado_pago'] == 'pagado'])
+        compras_pendientes = len([c for c in compras if c['estado_pago'] in ['pendiente', 'parcial']])
+        total_gastado = sum(float(c['total']) for c in compras)
+        total_pendiente = sum(float(c['saldo_pendiente']) for c in compras if c['estado_pago'] != 'pagado')
+        
+        estadisticas = {
+            'total_compras': total_compras,
+            'compras_pagadas': compras_pagadas,
+            'compras_pendientes': compras_pendientes,
+            'total_gastado': total_gastado,
+            'total_pendiente': total_pendiente
+        }
+        
+    except Exception as e:
+        print(f"ERROR en mis_compras(): {str(e)}")
+        flash(f"Error al obtener tus compras: {str(e)}", "danger")
+        compras = []
+        estadisticas = {}
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template("mis_compras.html", compras=compras, estadisticas=estadisticas)
+
+
+@app.route('/detalle_compra/<int:factura_id>')
+@Conexion.login_requerido
+def detalle_compra(factura_id):
+    """Detalle específico de una compra del cliente"""
+    if session.get('rango') != 2:
+        flash("Acceso denegado.", "danger")
+        return redirect('/home')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Verificar que la compra pertenece al cliente logueado
+        cursor.execute("""
+            SELECT 
+                fv.id_factura_venta,
+                fv.fecha AS fecha_compra,
+                fv.hora,
+                fv.total,
+                fv.es_credito,
+                fv.estado_pago,
+                fv.cuotas,
+                fv.precio_mensual,
+                fv.interes_aplicado,
+                fv.direccion,
+                CAST(COALESCE(fv.monto_abonado, 0) AS DECIMAL(10,2)) AS monto_abonado,
+                CAST((fv.total - COALESCE(fv.monto_abonado, 0)) AS DECIMAL(10,2)) AS saldo_pendiente,
+                p.nombre AS producto_nombre,
+                p.descripcion AS producto_descripcion,
+                p.precio AS precio_original,
+                ven.nombre AS vendedor_nombre,
+                ven.apellido AS vendedor_apellido,
+                cob.nombre AS cobrador_nombre,
+                cob.apellido AS cobrador_apellido,
+                cob.telefono AS cobrador_telefono
+            FROM factura_venta fv
+            JOIN producto p ON fv.id_product = p.id_product
+            JOIN usuarios ven ON fv.id_vendedor = ven.id
+            LEFT JOIN usuarios cob ON fv.id_cobrador = cob.id
+            WHERE fv.id_factura_venta = %s AND fv.id_cliente = %s
+        """, (factura_id, session['user_id']))
+        
+        compra = cursor.fetchone()
+        
+        if not compra:
+            flash("Compra no encontrada.", "danger")
+            return redirect('/mis_compras')
+        
+        # Obtener historial de abonos
+        cursor.execute("""
+            SELECT 
+                av.id_abono,
+                av.monto_abonado,
+                av.fecha,
+                av.mes_correspondiente,
+                av.año_correspondiente,
+                av.saldo_pendiente,
+                av.observaciones,
+                u.nombre as cobrador_registro,
+                u.apellido as cobrador_apellido_registro
+            FROM abono_venta av
+            LEFT JOIN usuarios u ON av.id_usuario = u.id
+            WHERE av.id_factura_venta = %s
+            ORDER BY av.año_correspondiente DESC, av.mes_correspondiente DESC, av.fecha DESC
+        """, (factura_id,))
+        
+        historial_abonos = cursor.fetchall()
+        
+        # Solo generar tabla de meses si es a crédito
+        meses_pago = []
+        if compra['es_credito']:
+            # Convertir historial a formato para generar_tabla_meses
+            historial_tuplas = []
+            for abono in historial_abonos:
+                historial_tuplas.append((
+                    abono['id_abono'],
+                    float(abono['monto_abonado']), 
+                    abono['fecha'],
+                    abono['mes_correspondiente'],
+                    abono['año_correspondiente'],
+                    float(abono['saldo_pendiente']),
+                    abono['observaciones'] or ''
+                ))
+            
+            meses_pago = generar_tabla_meses(
+                compra["fecha_compra"], 
+                compra["cuotas"], 
+                float(compra["precio_mensual"]), 
+                historial_tuplas
+            )
+        
+    except Exception as e:
+        print(f"ERROR en detalle_compra(): {str(e)}")
+        flash(f"Error al obtener detalles: {str(e)}", "danger")
+        return redirect('/mis_compras')
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template(
+        "detalle_compra.html", 
+        compra=compra, 
+        historial=historial_abonos,
+        meses_pago=meses_pago
+    )
+
+
+@app.route('/verificar_mes_abono', methods=['POST'])
+@Conexion.login_requerido
+def verificar_mes_abono():
+    """API endpoint para verificar cuánto se puede abonar en un mes específico"""
+    if session.get('rango') not in [2, 4]:  # Clientes y cobradores
+        return {'error': 'No autorizado'}, 403
+    
+    data = request.get_json()
+    factura_id = data.get('factura_id')
+    mes = data.get('mes')
+    año = data.get('año')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Verificar permisos según el rol
+        if session.get('rango') == 2:  # Cliente
+            cursor.execute("""
+                SELECT precio_mensual 
+                FROM factura_venta 
+                WHERE id_factura_venta = %s AND id_cliente = %s
+            """, (factura_id, session['user_id']))
+        else:  # Cobrador
+            cursor.execute("""
+                SELECT precio_mensual 
+                FROM factura_venta 
+                WHERE id_factura_venta = %s AND id_cobrador = %s
+            """, (factura_id, session['user_id']))
+        
+        factura = cursor.fetchone()
+        if not factura:
+            return {'error': 'Factura no encontrada'}, 404
+        
+        precio_mensual = float(factura['precio_mensual'])
+        
+        # Calcular lo ya abonado en este mes
+        cursor.execute("""
+            SELECT COALESCE(SUM(monto_abonado), 0) as total_abonado
+            FROM abono_venta 
+            WHERE id_factura_venta = %s 
+            AND mes_correspondiente = %s 
+            AND año_correspondiente = %s
+        """, (factura_id, mes, año))
+        
+        resultado = cursor.fetchone()
+        total_abonado = float(resultado['total_abonado'])
+        disponible = precio_mensual - total_abonado
+        
+        return {
+            'precio_mensual': precio_mensual,
+            'total_abonado': total_abonado,
+            'disponible': max(0, disponible)
+        }
+        
+    except Exception as e:
+        return {'error': str(e)}, 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
 
 
 

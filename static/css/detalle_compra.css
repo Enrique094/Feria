@@ -1,0 +1,413 @@
+/* Estilos para detalle de compra del cliente */
+.compra-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.header-info h2 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+}
+
+.fecha-compra {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 16px;
+}
+
+.compra-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.resumen-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-top: 4px solid #007bff;
+}
+
+.payment-summary {
+    border-top-color: #28a745;
+}
+
+.resumen-section h3 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.producto-info h4 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 20px;
+}
+
+.precio-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid #e9ecef;
+    margin-top: 15px;
+}
+
+.precio {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.venta-info .info-item,
+.credito-info .info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.label {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.payment-details {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.payment-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.payment-row.total-row,
+.payment-row.saldo-row {
+    border-top: 2px solid #dee2e6;
+    margin-top: 10px;
+    padding-top: 15px;
+    font-weight: 600;
+}
+
+.amount {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.amount.total { color: #2c3e50; font-size: 18px; }
+.amount.abonado { color: #28a745; }
+.amount.saldo, .amount.pendiente { color: #dc3545; }
+
+.estado-actual {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.estado-badge, .tipo-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.estado-badge.pendiente { background: #f8d7da; color: #721c24; }
+.estado-badge.parcial { background: #fff3cd; color: #856404; }
+.estado-badge.pagado { background: #d4edda; color: #155724; }
+
+.tipo-badge.credito { background: #e7f3ff; color: #0066cc; }
+.tipo-badge.contado { background: #e8f5e8; color: #2d6a2d; }
+
+.progreso-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.progreso-section h3 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+}
+
+.progreso-bar-grande {
+    width: 100%;
+    height: 30px;
+    background: #e9ecef;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.progreso-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.progreso-fill.pendiente { background: linear-gradient(90deg, #dc3545, #c82333); }
+.progreso-fill.parcial { background: linear-gradient(90deg, #ffc107, #e0a800); }
+.progreso-fill.pagado { background: linear-gradient(90deg, #28a745, #20c997); }
+
+.progreso-label {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.progreso-detalles {
+    display: flex;
+    justify-content: space-between;
+}
+
+.progreso-item {
+    text-align: center;
+}
+
+.meses-section {
+    margin-bottom: 30px;
+}
+
+.meses-section h3 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.meses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.mes-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid;
+    transition: transform 0.2s;
+}
+
+.mes-card:hover {
+    transform: translateY(-2px);
+}
+
+.mes-card.pendiente { border-color: #dc3545; }
+.mes-card.parcial { border-color: #ffc107; }
+.mes-card.pagado { border-color: #28a745; }
+
+.mes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.mes-header h4 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.cuota-numero {
+    background: #f8f9fa;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.mes-detalles {
+    margin-bottom: 15px;
+}
+
+.detalle-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+}
+
+.abonos-mes {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+.abono-detalle {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin: 4px 0;
+}
+
+.mes-estado {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.estado-icon {
+    font-size: 16px;
+}
+
+.historial-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.historial-section h3 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+}
+
+.tabla-historial {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-historial th,
+.tabla-historial td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.tabla-historial th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.tabla-historial tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.observaciones {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.no-historial {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.no-historial-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.no-historial h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.contacto-section {
+    background: #e3f2fd;
+    padding: 25px;
+    border-radius: 12px;
+    border-left: 4px solid #2196f3;
+}
+
+.contacto-section h3 {
+    margin: 0 0 15px 0;
+    color: #1565c0;
+}
+
+.contacto-info p {
+    margin: 8px 0;
+    color: #1976d2;
+}
+
+.contacto-note {
+    font-style: italic;
+    color: #424242 !important;
+    margin-top: 15px !important;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .compra-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .compra-resumen {
+        grid-template-columns: 1fr;
+    }
+    
+    .meses-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tabla-historial {
+        font-size: 12px;
+    }
+    
+    .tabla-historial th,
+    .tabla-historial td {
+        padding: 8px 4px;
+    }
+    
+    .progreso-detalles {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

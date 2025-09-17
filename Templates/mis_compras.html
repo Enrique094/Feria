@@ -1,0 +1,169 @@
+{% extends "layout.html" %}
+{% block content %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mis_compras.css') }}">
+{% endblock %}
+
+<div class="cliente-header">
+    <h2>Mis Compras - {{ session.nombre }}</h2>
+    <p class="cliente-info">Aquí puedes ver todas tus compras, estados de pago y realizar seguimiento a tus pagos.</p>
+</div>
+
+<!-- Resumen de estadísticas -->
+<div class="estadisticas-cliente">
+    <div class="stat-card total">
+        <div class="stat-icon">🛍️</div>
+        <div class="stat-info">
+            <h3>{{ estadisticas.total_compras }}</h3>
+            <p>Total Compras</p>
+        </div>
+    </div>
+    <div class="stat-card pagadas">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+            <h3>{{ estadisticas.compras_pagadas }}</h3>
+            <p>Pagadas</p>
+        </div>
+    </div>
+    <div class="stat-card pendientes">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-info">
+            <h3>{{ estadisticas.compras_pendientes }}</h3>
+            <p>Pendientes</p>
+        </div>
+    </div>
+    <div class="stat-card gastado">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+            <h3>${{ "%.2f"|format(estadisticas.total_gastado) }}</h3>
+            <p>Total Gastado</p>
+        </div>
+    </div>
+    <div class="stat-card deuda">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+            <h3>${{ "%.2f"|format(estadisticas.total_pendiente) }}</h3>
+            <p>Saldo Pendiente</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filtros-compras">
+    <button class="filtro-btn active" onclick="filtrarCompras('todas')">Todas</button>
+    <button class="filtro-btn" onclick="filtrarCompras('pendiente')">Pendientes</button>
+    <button class="filtro-btn" onclick="filtrarCompras('parcial')">Parciales</button>
+    <button class="filtro-btn" onclick="filtrarCompras('pagado')">Pagadas</button>
+    <button class="filtro-btn" onclick="filtrarCompras('credito')">A Crédito</button>
+</div>
+
+<!-- Lista de compras -->
+<div class="compras-container">
+    {% if compras %}
+        {% for compra in compras %}
+        <div class="compra-card {{ compra.estado_pago }}" data-estado="{{ compra.estado_pago }}" data-tipo="{{ 'credito' if compra.es_credito else 'contado' }}">
+            <div class="compra-header">
+                <div class="compra-info">
+                    <h3>{{ compra.producto_nombre }}</h3>
+                    <p class="fecha">📅 {{ compra.fecha_compra.strftime('%d/%m/%Y') if compra.fecha_compra.strftime else compra.fecha_compra }}</p>
+                    <span class="factura-num">Factura #{{ compra.id_factura_venta }}</span>
+                </div>
+                <div class="compra-estado">
+                    <span class="estado-badge {{ compra.estado_pago }}">
+                        {{ compra.estado_pago.title() }}
+                    </span>
+                    <span class="tipo-badge {{ 'credito' if compra.es_credito else 'contado' }}">
+                        {{ 'Crédito' if compra.es_credito else 'Contado' }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="compra-detalles">
+                <div class="detalle-item">
+                    <span class="label">Total:</span>
+                    <span class="valor total">${{ "%.2f"|format(compra.total) }}</span>
+                </div>
+                <div class="detalle-item">
+                    <span class="label">Abonado:</span>
+                    <span class="valor abonado">${{ "%.2f"|format(compra.monto_abonado) }}</span>
+                </div>
+                <div class="detalle-item">
+                    <span class="label">Pendiente:</span>
+                    <span class="valor pendiente">${{ "%.2f"|format(compra.saldo_pendiente) }}</span>
+                </div>
+                {% if compra.es_credito %}
+                <div class="detalle-item">
+                    <span class="label">Cuotas:</span>
+                    <span class="valor">{{ compra.cuotas }} meses</span>
+                </div>
+                <div class="detalle-item">
+                    <span class="label">Pago mensual:</span>
+                    <span class="valor">${{ "%.2f"|format(compra.precio_mensual) }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Barra de progreso -->
+            {% if compra.es_credito and compra.total > 0 %}
+            <div class="progreso-pago">
+                {% set porcentaje = (compra.monto_abonado / compra.total * 100) %}
+                <div class="progreso-bar">
+                    <div class="progreso-fill {{ compra.estado_pago }}" {{ porcentaje }}%"></div>
+                </div>
+                <span class="progreso-texto">{{ "%.1f"|format(porcentaje) }}% pagado</span>
+            </div>
+            {% endif %}
+            
+            <div class="compra-acciones">
+                <a href="/detalle_compra/{{ compra.id_factura_venta }}" class="btn btn-primary">
+                    Ver Detalle Completo
+                </a>
+                {% if compra.estado_pago != 'pagado' and compra.es_credito %}
+                <span class="estado-info">
+                    💡 Próximo pago: ${{ "%.2f"|format(compra.precio_mensual) }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-compras">
+            <div class="no-compras-icon">🛒</div>
+            <h3>No tienes compras registradas</h3>
+            <p>Cuando realices compras, aparecerán aquí para que puedas hacer seguimiento a tus pagos.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function filtrarCompras(filtro) {
+    const compras = document.querySelectorAll('.compra-card');
+    const botones = document.querySelectorAll('.filtro-btn');
+    
+    // Actualizar botón activo
+    botones.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    compras.forEach(compra => {
+        let mostrar = false;
+        
+        switch(filtro) {
+            case 'todas':
+                mostrar = true;
+                break;
+            case 'credito':
+                mostrar = compra.dataset.tipo === 'credito';
+                break;
+            default:
+                mostrar = compra.dataset.estado === filtro;
+        }
+        
+        compra.style.display = mostrar ? 'block' : 'none';
+    });
+}
+</script>
+
+
+
+{% endblock %}

@@ -27,6 +27,10 @@
                     <li><a href="/ventas_admin">Administrar Ventas</a></li>
                 {% endif %}
 
+                {% if session.get('rango_nombre') == 'Cliente' %}
+                    <li><a href="/mis_compras">Mis Compras</a></li>
+                {% endif %}
+
                 {% if session.get('rango_nombre') == 'Vendedor' %}
                     <li><a href="/registrar_venta">Ventas</a></li>
                 {% endif %}

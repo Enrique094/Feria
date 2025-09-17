@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 15-09-2025 a las 02:27:48
+-- Tiempo de generación: 17-09-2025 a las 03:17:39
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -38,19 +38,6 @@ CREATE TABLE `abono_venta` (
   `observaciones` varchar(200) DEFAULT NULL,
   `fecha` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `abono_venta`
---
-
-INSERT INTO `abono_venta` (`id_abono`, `id_factura_venta`, `id_usuario`, `monto_abonado`, `mes_correspondiente`, `año_correspondiente`, `saldo_pendiente`, `observaciones`, `fecha`) VALUES
-(1, 1, 4, 4.50, 9, 2025, 22.49, 'pipip', '2025-09-14'),
-(2, 1, 4, 4.50, 10, 2025, 17.99, 'vaya pues', '2025-09-14'),
-(3, 1, 4, 4.50, 11, 2025, 13.49, 'pipipi', '2025-09-14'),
-(4, 1, 4, 3.50, 12, 2025, 9.99, 'no pago el gey por completo', '2025-09-14'),
-(5, 1, 4, 1.00, 12, 2025, 8.99, 'gey', '2025-09-14'),
-(6, 1, 4, 4.50, 1, 2026, 4.49, '', '2025-09-14'),
-(7, 1, 4, 4.49, 2, 2026, 0.00, '', '2025-09-14');
 
 -- --------------------------------------------------------
 
@@ -107,14 +94,6 @@ CREATE TABLE `factura_venta` (
   `hora` time NOT NULL,
   `direccion` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `factura_venta`
---
-
-INSERT INTO `factura_venta` (`id_factura_venta`, `id_cliente`, `id_cobrador`, `id_vendedor`, `id_product`, `interes_aplicado`, `es_credito`, `estado_pago`, `monto_abonado`, `total`, `cuotas`, `precio_mensual`, `fecha`, `hora`, `direccion`) VALUES
-(1, 3, 4, 2, 1, 8.00, 1, 'pagado', 26.99, 26.99, 6, 4.50, '2025-09-14', '15:15:20', 'San Salvador, apopa madre tierra'),
-(3, 3, NULL, 2, 2, 0.00, 0, 'pendiente', 0.00, 499.99, 1, 499.99, '2025-09-14', '15:27:58', 'Santa Teresa de las flores :D');
 
 -- --------------------------------------------------------
 
@@ -303,7 +282,7 @@ ALTER TABLE `factura_cobro`
 -- AUTO_INCREMENT de la tabla `factura_venta`
 --
 ALTER TABLE `factura_venta`
-  MODIFY `id_factura_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_factura_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `intereses`

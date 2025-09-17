@@ -8,8 +8,29 @@
 <div class="ventas-container">
     <h2 class="titulo-ventas">📑 Ventas registradas</h2>
 
+    <!-- FILTROS -->
+    <form class="form-filtros" method="GET" action="{{ url_for('ventas_admin') }}">
+        <label for="cobrador">Cobrador:</label>
+        <select name="id_cobrador" id="cobrador">
+            <option value="">Todos</option>
+            {% for cobrador in cobradores %}
+                <option value="{{ cobrador.id }}"
+                    {% if request.args.get('id_cobrador') == cobrador.id|string %}selected{% endif %}>
+                    {{ cobrador.nombre }} {{ cobrador.apellido }}
+                </option>
+            {% endfor %}
+        </select>
 
+        <label for="fecha_inicio">Desde:</label>
+        <input type="date" name="fecha_inicio" id="fecha_inicio" value="{{ request.args.get('fecha_inicio', '') }}">
 
+        <label for="fecha_fin">Hasta:</label>
+        <input type="date" name="fecha_fin" id="fecha_fin" value="{{ request.args.get('fecha_fin', '') }}">
+
+        <button type="submit" class="btn-filtrar">🔍 Filtrar</button>
+    </form>
+
+    <!-- TABLA -->
     <table class="tabla-ventas">
         <thead>
             <tr>
@@ -25,14 +46,14 @@
         <tbody>
         {% for venta in ventas %}
             <tr>
-                <td>{{ venta.cliente }} {{ venta.cliente_apellido }}</td>
-                <td>{{ venta.producto }}</td>
-                <td>{{ venta.vendedor }} {{ venta.vendedor_apellido }}</td>
-                <td>{{ venta.fecha }}</td>
+                <td>{{ venta.cliente_nombre }} {{ venta.cliente_apellido }}</td>
+                <td>{{ venta.producto_nombre }}</td>
+                <td>{{ venta.vendedor_nombre }} {{ venta.vendedor_apellido }}</td>
+                <td>{{ venta.fecha_venta }}</td>
                 <td>{{ venta.hora }}</td>
                 <td>
-                    {% if venta.cobrador %}
-                        {{ venta.cobrador }} {{ venta.cobrador_apellido }}
+                    {% if venta.cobrador_nombre %}
+                        {{ venta.cobrador_nombre }} {{ venta.cobrador_apellido }}
                     {% else %}
                         <form class="form-asignacion" method="POST" action="{{ url_for('ventas_admin') }}">
                             <input type="hidden" name="id_factura" value="{{ venta.id_factura_venta }}">
@@ -47,12 +68,16 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if not venta.cobrador %}
+                    {% if not venta.cobrador_nombre %}
                         <span class="estado-sin-cobrador">⚠️ Sin cobrador asignado</span>
                     {% else %}
                         <span class="estado-con-cobrador">✅ Cobrador asignado</span>
                     {% endif %}
                 </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No se encontraron ventas con esos filtros</td>
             </tr>
         {% endfor %}
         </tbody>

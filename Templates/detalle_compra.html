@@ -1,0 +1,248 @@
+{% extends "layout.html" %}
+{% block content %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/detalle_compra.css') }}">
+{% endblock %}
+
+
+<div class="compra-header">
+    <div class="header-info">
+        <h2>Detalle de Compra - Factura #{{ compra.id_factura_venta }}</h2>
+        <p class="fecha-compra">Realizada el {{ compra.fecha_compra.strftime('%d de %B de %Y') if compra.fecha_compra.strftime else compra.fecha_compra }}</p>
+    </div>
+    <div class="header-actions">
+        <a href="/mis_compras" class="btn btn-secondary">Volver a Mis Compras</a>
+    </div>
+</div>
+
+<!-- Información general de la compra -->
+<div class="compra-resumen">
+    <div class="resumen-section">
+        <h3>Producto</h3>
+        <div class="producto-info">
+            <h4>{{ compra.producto_nombre }}</h4>
+            {% if compra.producto_descripcion %}
+            <p>{{ compra.producto_descripcion }}</p>
+            {% endif %}
+            <div class="precio-info">
+                <span class="label">Precio original:</span>
+                <span class="precio">${{ "%.2f"|format(compra.precio_original) }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="resumen-section">
+        <h3>Detalles de Venta</h3>
+        <div class="venta-info">
+            <div class="info-item">
+                <span class="label">Vendedor:</span>
+                <span>{{ compra.vendedor_nombre }} {{ compra.vendedor_apellido }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Fecha y hora:</span>
+                <span>{{ compra.fecha_compra.strftime('%d/%m/%Y') if compra.fecha_compra.strftime else compra.fecha_compra }} - {{ compra.hora }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Dirección de entrega:</span>
+                <span>{{ compra.direccion }}</span>
+            </div>
+            {% if compra.cobrador_nombre %}
+            <div class="info-item">
+                <span class="label">Cobrador asignado:</span>
+                <span>{{ compra.cobrador_nombre }} {{ compra.cobrador_apellido }}</span>
+                {% if compra.cobrador_telefono %}
+                <br><small>Tel: {{ compra.cobrador_telefono }}</small>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="resumen-section payment-summary">
+        <h3>Resumen de Pagos</h3>
+        <div class="payment-details">
+            <div class="payment-row">
+                <span>Precio base:</span>
+                <span class="amount">${{ "%.2f"|format(compra.precio_original) }}</span>
+            </div>
+            {% if compra.interes_aplicado > 0 %}
+            <div class="payment-row">
+                <span>Interés ({{ "%.1f"|format(compra.interes_aplicado) }}%):</span>
+                <span class="amount">${{ "%.2f"|format((compra.total - compra.precio_original)) }}</span>
+            </div>
+            {% endif %}
+            <div class="payment-row total-row">
+                <span>Total:</span>
+                <span class="amount total">${{ "%.2f"|format(compra.total) }}</span>
+            </div>
+            <div class="payment-row">
+                <span>Abonado:</span>
+                <span class="amount abonado">${{ "%.2f"|format(compra.monto_abonado) }}</span>
+            </div>
+            <div class="payment-row saldo-row">
+                <span>Saldo pendiente:</span>
+                <span class="amount saldo">${{ "%.2f"|format(compra.saldo_pendiente) }}</span>
+            </div>
+            
+            <div class="estado-actual">
+                <span class="estado-badge {{ compra.estado_pago }}">
+                    {{ compra.estado_pago.title() }}
+                </span>
+                <span class="tipo-badge {{ 'credito' if compra.es_credito else 'contado' }}">
+                    {{ 'A Crédito' if compra.es_credito else 'Al Contado' }}
+                </span>
+            </div>
+            
+            {% if compra.es_credito %}
+            <div class="credito-info">
+                <div class="info-item">
+                    <span>Cuotas:</span>
+                    <span>{{ compra.cuotas }} meses</span>
+                </div>
+                <div class="info-item">
+                    <span>Pago mensual:</span>
+                    <span class="amount">${{ "%.2f"|format(compra.precio_mensual) }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Progreso de pago visual -->
+{% if compra.es_credito and compra.total > 0 %}
+<div class="progreso-section">
+    <h3>Progreso de Pago</h3>
+    {% set porcentaje = (compra.monto_abonado / compra.total * 100) %}
+    <div class="progreso-visual">
+        <div class="progreso-bar-grande">
+            <div class="progreso-fill {{ compra.estado_pago }}" {{ porcentaje }}%">
+                <span class="progreso-label">{{ "%.1f"|format(porcentaje) }}%</span>
+            </div>
+        </div>
+        <div class="progreso-detalles">
+            <div class="progreso-item">
+                <span>Pagado</span>
+                <span class="amount abonado">${{ "%.2f"|format(compra.monto_abonado) }}</span>
+            </div>
+            <div class="progreso-item">
+                <span>Restante</span>
+                <span class="amount pendiente">${{ "%.2f"|format(compra.saldo_pendiente) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla de meses para crédito -->
+{% if meses_pago and compra.es_credito %}
+<div class="meses-section">
+    <h3>Estado de Pagos por Mes</h3>
+    <div class="meses-grid">
+        {% for mes in meses_pago %}
+        <div class="mes-card {{ mes.estado }}">
+            <div class="mes-header">
+                <h4>{{ mes.mes_nombre }}</h4>
+                <span class="cuota-numero">Cuota {{ mes.numero }}</span>
+            </div>
+            
+            <div class="mes-detalles">
+                <div class="detalle-row">
+                    <span>Esperado:</span>
+                    <span class="amount">${{ "%.2f"|format(mes.cuota_esperada) }}</span>
+                </div>
+                <div class="detalle-row">
+                    <span>Abonado:</span>
+                    <span class="amount abonado">${{ "%.2f"|format(mes.total_abonado) }}</span>
+                </div>
+                <div class="detalle-row">
+                    <span>Pendiente:</span>
+                    <span class="amount pendiente">${{ "%.2f"|format(mes.pendiente) }}</span>
+                </div>
+            </div>
+            
+            {% if mes.abonos %}
+            <div class="abonos-mes">
+                <small>Abonos registrados:</small>
+                {% for abono in mes.abonos %}
+                <div class="abono-detalle">
+                    <span class="monto">${{ "%.2f"|format(abono.monto) }}</span>
+                    <span class="fecha">{{ abono.fecha.strftime('%d/%m') if abono.fecha.strftime else abono.fecha }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="mes-estado">
+                <span class="estado-icon">
+                    {% if mes.estado == 'pagado' %}✅
+                    {% elif mes.estado == 'parcial' %}⏳
+                    {% else %}⭕
+                    {% endif %}
+                </span>
+                <span class="estado-texto">{{ mes.estado.title() }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Historial completo de abonos -->
+{% if historial %}
+<div class="historial-section">
+    <h3>Historial Completo de Abonos</h3>
+    <div class="historial-tabla">
+        <table class="tabla-historial">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Monto</th>
+                    <th>Mes/Año</th>
+                    <th>Saldo Después</th>
+                    <th>Observaciones</th>
+                    <th>Registrado por</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for abono in historial %}
+                <tr>
+                    <td>{{ abono.fecha.strftime('%d/%m/%Y') if abono.fecha.strftime else abono.fecha }}</td>
+                    <td class="amount abonado">${{ "%.2f"|format(abono.monto_abonado) }}</td>
+                    <td>{{ abono.mes_correspondiente }}/{{ abono.año_correspondiente }}</td>
+                    <td class="amount">${{ "%.2f"|format(abono.saldo_pendiente) }}</td>
+                    <td class="observaciones">{{ abono.observaciones or '-' }}</td>
+                    <td>{{ abono.cobrador_registro }} {{ abono.cobrador_apellido_registro or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="no-historial">
+    <div class="no-historial-content">
+        <div class="no-historial-icon">💳</div>
+        <h3>No hay abonos registrados</h3>
+        <p>{% if compra.es_credito %}Cuando realices pagos, aparecerán aquí con todos los detalles.{% else %}Esta compra fue pagada al contado.{% endif %}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Información de contacto -->
+{% if compra.cobrador_nombre and compra.estado_pago != 'pagado' %}
+<div class="contacto-section">
+    <h3>Información de Contacto para Pagos</h3>
+    <div class="contacto-info">
+        <p><strong>Cobrador asignado:</strong> {{ compra.cobrador_nombre }} {{ compra.cobrador_apellido }}</p>
+        {% if compra.cobrador_telefono %}
+        <p><strong>Teléfono:</strong> <a href="tel:{{ compra.cobrador_telefono }}">{{ compra.cobrador_telefono }}</a></p>
+        {% endif %}
+        <p class="contacto-note">Puedes contactar a tu cobrador para coordinar los pagos o resolver cualquier duda.</p>
+    </div>
+</div>
+{% endif %}
+
+
+{% endblock %}
