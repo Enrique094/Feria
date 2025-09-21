@@ -66,6 +66,7 @@ CREATE TABLE factura_venta (
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
     direccion VARCHAR(100) NOT NULL,
+    cantidad INT NOT NULL DEFAULT 1,
     FOREIGN KEY (id_cliente) REFERENCES usuarios(id),
     FOREIGN KEY (id_cobrador) REFERENCES usuarios(id),
     FOREIGN KEY (id_vendedor) REFERENCES usuarios(id),

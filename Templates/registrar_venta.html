@@ -20,16 +20,32 @@
     </div>
 
     <div class="form-group">
-        <label>Productos:</label>
-        <select name="productos" id="productos" multiple required onchange="calcularTotalProductos()">
+        <label>Producto:</label>
+        <select name="producto" id="producto" required onchange="mostrarCantidad()">
+            <option value="">Seleccione un producto</option>
             {% for producto in productos %}
-                <option value="{{ producto[0] }}" data-precio="{{ producto[2] }}">
-                    {{ producto[1] }} - ${{ "%.2f"|format(producto[2]) }}
-                </option>
+                {% if producto[3] > 0 %}
+                    <option value="{{ producto[0] }}" 
+                            data-precio="{{ producto[2] }}" 
+                            data-stock="{{ producto[3] }}">
+                        {{ producto[1] }} - ${{ "%.2f"|format(producto[2]) }} (Stock: {{ producto[3] }})
+                    </option>
+                {% else %}
+                    <option value="{{ producto[0] }}" disabled>
+                        {{ producto[1] }} - No disponible
+                    </option>
+                {% endif %}
             {% endfor %}
         </select>
-        <small>Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples productos</small>
     </div>
+
+    <!-- Campo de cantidad -->
+    <div class="form-group" id="cantidad-container" style="display:none;">
+        <label>Cantidad:</label>
+        <input type="number" id="cantidad" name="cantidad" min="1" value="1" oninput="validarCantidad()" required>
+        <small id="stock-info"></small>
+    </div>
+
 
     <div class="form-group">
         <label>Dirección de entrega:</label>
@@ -94,30 +110,54 @@ function toggleCreditoOptions() {
     calcularTotalProductos();
 }
 
+function mostrarCantidad() {
+    let select = document.getElementById("producto");
+    let cantidadContainer = document.getElementById("cantidad-container");
+    let cantidadInput = document.getElementById("cantidad");
+    let stockInfo = document.getElementById("stock-info");
+
+    let option = select.options[select.selectedIndex];
+    let stock = option.getAttribute("data-stock");
+
+    if (stock && stock > 0) {
+        cantidadContainer.style.display = "block";
+        cantidadInput.max = stock;
+        cantidadInput.value = 1;
+        stockInfo.innerText = `Stock disponible: ${stock}`;
+    } else {
+        cantidadContainer.style.display = "none";
+    }
+}
+function validarCantidad() {
+    let cantidadInput = document.getElementById("cantidad");
+    let max = parseInt(cantidadInput.max);
+    if (parseInt(cantidadInput.value) > max) {
+        cantidadInput.value = max;
+    }
+}
+
 function calcularTotalProductos() {
-    const productosSelect = document.getElementById('productos');
+    const productosSelect = document.getElementById('producto');
     const contadoRadio = document.getElementById('contado');
     const mesesSelect = document.getElementById('meses');
     const resumenPago = document.getElementById('resumen-pago');
-    
-    // Calcular precio total de productos seleccionados
-    let precioBase = 0;
-    const selectedOptions = Array.from(productosSelect.selectedOptions);
-    
-    if (selectedOptions.length === 0) {
+    const cantidadInput = document.getElementById('cantidad');
+
+    const selectedOption = productosSelect.options[productosSelect.selectedIndex];
+    if (!selectedOption) {
         resumenPago.style.display = 'none';
         return;
     }
-    
-    selectedOptions.forEach(option => {
-        precioBase += parseFloat(option.dataset.precio);
-    });
-    
+
+    const precioUnitario = parseFloat(selectedOption.dataset.precio);
+    const cantidad = parseInt(cantidadInput.value) || 1;
+    let precioBase = precioUnitario * cantidad;
+
     let total = precioBase;
     let interes = 0;
     let cuotas = 1;
     let pagoMensual = precioBase;
-    
+
     if (!contadoRadio.checked && mesesSelect.value) {
         const selectedMeses = mesesSelect.options[mesesSelect.selectedIndex];
         if (selectedMeses && selectedMeses.dataset.interes) {
@@ -127,14 +167,13 @@ function calcularTotalProductos() {
             pagoMensual = total / cuotas;
         }
     }
-    
-    // Actualizar resumen
+
     document.getElementById('precio-base').textContent = precioBase.toFixed(2);
     document.getElementById('interes-aplicado').textContent = interes + '%';
     document.getElementById('total-pagar').textContent = total.toFixed(2);
     document.getElementById('num-cuotas').textContent = cuotas;
     document.getElementById('pago-mensual').textContent = pagoMensual.toFixed(2);
-    
+
     resumenPago.style.display = 'block';
 }
 
