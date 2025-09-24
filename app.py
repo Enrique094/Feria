@@ -14,10 +14,10 @@ app.secret_key = 'Quemen el ina'
 
 def get_connection():
     return mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='',
-        database='Gestor'
+        host='Enrique109.mysql.pythonanywhere-services.com',
+        user='Enrique109',
+        password='BM 10969',
+        database='Enrique109$default'
     )
 
 def admin_required(f):
