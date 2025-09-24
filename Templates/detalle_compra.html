@@ -28,7 +28,6 @@
             <div class="precio-info">
                 <span class="label">Precio original:</span>
                 <span class="precio">${{ "%.2f"|format(compra.precio_original) }}</span>
-
             </div>
         </div>
     </div>
@@ -47,10 +46,6 @@
             <div class="info-item">
                 <span class="label">Dirección de entrega:</span>
                 <span>{{ compra.direccion }}</span>
-            </div>
-            <div class="info-item">
-                <span class="label">Cantidad</span>
-                <span class="cantidad">{{ compra.cantidad }}</span>
             </div>
             {% if compra.cobrador_nombre %}
             <div class="info-item">

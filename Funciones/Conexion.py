@@ -144,46 +144,39 @@ def register(Nombre, Correo, Contraseña, id_rango=2, datos_extra=None):
         flash(f"❌ Error interno al registrar usuario: {str(e)}")
         return redirect('/register_admin?error=fallo_en_registro')
 
-def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora, cantidad,
-                    total=0, cuotas=1, precio_mensual=0, interes_aplicado=0,
-                    es_credito=0, direccion=""):
+def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora, total=0, cuotas=1, precio_mensual=0, interes_aplicado=0, es_credito=0, direccion=""):
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Verificar stock del producto
-        cursor.execute("SELECT stock, precio FROM producto WHERE id_product = %s", (id_producto,))
-        producto = cursor.fetchone()
-        if not producto:
-            print("❌ Producto no encontrado")
-            return False
-
-        if producto["stock"] < cantidad:
-            print(f"❌ Stock insuficiente. Solo quedan {producto['stock']} unidades")
+        cursor = conn.cursor()
+        
+        # Obtener un cobrador por defecto (el primero disponible)
+        cursor.execute("SELECT id FROM usuarios WHERE id_rango = 4 AND estado = 1 LIMIT 1")
+        cobrador_result = cursor.fetchone()
+        if not cobrador_result:
+            print("❌ No hay cobradores disponibles")
             return False
         
-        id_cobrador = None
+        id_cobrador = cobrador_result[0]
         
-
-        # Insertar la venta
+        # USAR LOS NOMBRES CORRECTOS DE LAS COLUMNAS DE TU BD
         cursor.execute("""
-                    INSERT INTO factura_venta
-    (id_cliente, id_cobrador, id_vendedor, id_product, interes_aplicado, es_credito,
-    estado_pago, monto_abonado, total, cuotas, precio_mensual, fecha, hora, direccion, cantidad)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-    id_cliente, id_cobrador, id_vendedor, id_producto, interes_aplicado, es_credito,
-    'pendiente', 0.0, total, cuotas, precio_mensual, fecha, hora, direccion, cantidad
+            INSERT INTO factura_venta (
+                id_cliente, id_cobrador, id_vendedor, id_product, interes_aplicado, es_credito,
+                estado_pago, monto_abonado, total, cuotas, precio_mensual,
+                fecha, hora, direccion
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            id_cliente, id_cobrador, id_vendedor, id_producto, interes_aplicado, es_credito,
+            'pendiente', 0.00, total, cuotas, precio_mensual,
+            fecha, hora, direccion
         ))
 
-        # Actualizar el stock
-        cursor.execute("UPDATE producto SET stock = stock - %s WHERE id_product = %s",
-                    (cantidad, id_producto))
         conn.commit()
         cursor.close()
         conn.close()
         return True
-
+        
     except Exception as e:
         print(f"❌ Error al registrar venta: {e}")
         if conn:
@@ -191,6 +184,9 @@ def registrar_venta(id_cliente, id_vendedor, id_producto, fecha, hora, cantidad,
         cursor.close()
         conn.close()
         return False
+
+
+
 
 
 # ------------------------
@@ -455,6 +451,7 @@ def obtener_estadisticas_cliente(id_cliente):
     except Exception as e:
         print(f"ERROR en obtener_estadisticas_cliente: {e}")
         return {}
+
 
 
 

@@ -43,7 +43,6 @@
                     <th>Factura</th>
                     <th>Cliente</th>
                     <th>Producto</th>
-                    <th>Cantidad</th>
                     <th>Tipo</th>
                     <th>Total</th>
                     <th>Abonado</th>
@@ -64,7 +63,6 @@
                         <small>{{ venta.cliente_telefono or 'Sin teléfono' }}</small>
                     </td>
                     <td>{{ venta.producto_nombre }}</td>
-                    <td class="cantidad">{{ venta.cantidad }}</td>
                     <td>
                         <span class="tipo-badge {{ 'credito' if venta.tipo_pago == 'Crédito' else 'contado' }}">
                             {{ venta.tipo_pago }}

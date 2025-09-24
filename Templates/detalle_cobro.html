@@ -27,8 +27,7 @@
         {% if factura.producto_descripcion %}
         <p>{{ factura.producto_descripcion }}</p>
         {% endif %}
-        <p>💰 Precio Unitario: ${{ "%.2f"|format(factura.precio_producto) }}</p>
-        <p>Cantidad: {{ factura.cantidad }}</p>  
+        <p>💰 Precio original: ${{ "%.2f"|format(factura.precio_producto) }}</p>
         <p>📅 Fecha venta: {{ factura.fecha_venta.strftime('%d/%m/%Y') if factura.fecha_venta.strftime else factura.fecha_venta }}</p>
     </div>
     

@@ -6,7 +6,14 @@ from functools import wraps
 import io
 import calendar
 from decimal import Decimal
-from Funciones.PDF import recibos_bp  # Importar el Blueprint desde PDF.py
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from flask import Response
 
 
 app = Flask(__name__)
@@ -40,9 +47,7 @@ def to_float(value):
             return 0.0
     return float(value) if value is not None else 0.0
 
-# Registrar Blueprints
-# ======================
-app.register_blueprint(recibos_bp)
+
 
 def generar_tabla_meses(fecha_inicio, total_cuotas, precio_mensual, historial_abonos):
     """Genera una tabla de meses mostrando estado de pagos"""
@@ -113,6 +118,186 @@ def generar_tabla_meses(fecha_inicio, total_cuotas, precio_mensual, historial_ab
         })
 
     return meses
+
+def generar_recibo_pdf(abono_data):
+    """
+    Genera un PDF del recibo de abono
+    abono_data debe contener:
+    - id_abono, monto_abonado, fecha, saldo_pendiente
+    - cliente_nombre, total_factura, cobrador_nombre
+    """
+    
+    # Crear buffer en memoria
+    buffer = io.BytesIO()
+    
+    # Configurar documento
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=50,
+        leftMargin=50,
+        topMargin=70,
+        bottomMargin=50
+    )
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    
+    # Estilo personalizado para el título
+    titulo_style = ParagraphStyle(
+        'TituloRecibo',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=10,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#2c3e50'),
+        fontName='Helvetica-Bold'
+    )
+    
+    # Estilo para subtítulo
+    subtitulo_style = ParagraphStyle(
+        'SubtituloRecibo',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#7f8c8d'),
+        fontName='Helvetica'
+    )
+    
+    # Estilo para información principal
+    info_style = ParagraphStyle(
+        'InfoRecibo',
+        parent=styles['Normal'],
+        fontSize=14,
+        spaceAfter=8,
+        alignment=TA_LEFT,
+        textColor=colors.HexColor('#2c3e50'),
+        fontName='Helvetica'
+    )
+    
+    # Estilo para nota
+    nota_style = ParagraphStyle(
+        'NotaRecibo',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=4,
+        alignment=TA_LEFT,
+        textColor=colors.HexColor('#7f8c8d'),
+        fontName='Helvetica'
+    )
+    
+    # Contenido del PDF
+    story = []
+    
+    # Título
+    titulo = Paragraph("RECIBO DE CONTROL", titulo_style)
+    story.append(titulo)
+    
+    # Subtítulo
+    subtitulo = Paragraph("ESPERA PUNTUALIDAD EN SUS ABONOS PARA SERVIRLE MEJOR", subtitulo_style)
+    story.append(subtitulo)
+    
+    # Espaciado
+    story.append(Spacer(1, 20))
+    
+    # Información principal en tabla para mejor formato
+    data = [
+        [f"No. {abono_data['id_abono']}", "", f"POR $ {abono_data['total_factura']:.2f}"],
+        ["", "", ""],
+        [f"Recibí de {abono_data['cliente_nombre']}", "", ""],
+        ["", "", ""],
+        [f"La suma de $ {abono_data['monto_abonado']:.2f}", "", f"Resta $ {abono_data['saldo_pendiente']:.2f}"],
+        ["", "", ""],
+    ]
+    
+    # Crear tabla principal
+    tabla_principal = Table(data, colWidths=[2.5*inch, 1*inch, 2.5*inch])
+    tabla_principal.setStyle(TableStyle([
+        # Bordes inferiores para campos a llenar
+        ('LINEBELOW', (0,0), (0,0), 2, colors.black),  # No.
+        ('LINEBELOW', (2,0), (2,0), 2, colors.black),  # POR $
+        ('LINEBELOW', (0,2), (2,2), 2, colors.black),  # Recibí de
+        ('LINEBELOW', (0,4), (0,4), 2, colors.black),  # La suma de
+        ('LINEBELOW', (2,4), (2,4), 2, colors.black),  # Resta
+        
+        # Alineación
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        
+        # Fuente
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 14),
+        
+        # Espaciado
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+    ]))
+    
+    story.append(tabla_principal)
+    story.append(Spacer(1, 30))
+    
+    # Fecha y lugar
+    fecha_obj = datetime.strptime(abono_data['fecha'], '%Y-%m-%d') if isinstance(abono_data['fecha'], str) else abono_data['fecha']
+    
+    meses = [
+        "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ]
+    
+    fecha_texto = f"San Salvador, {fecha_obj.day} de {meses[fecha_obj.month]} del {fecha_obj.year}"
+    
+    fecha_para = Paragraph(fecha_texto, info_style)
+    story.append(fecha_para)
+    story.append(Spacer(1, 40))
+    
+    # Línea para firma del cobrador
+    cobrador_data = [
+        ["_" * 50],
+        [f"COBRADOR: {abono_data['cobrador_nombre']}"]
+    ]
+    
+    tabla_cobrador = Table(cobrador_data, colWidths=[4*inch])
+    tabla_cobrador.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME', (0,1), (0,1), 'Helvetica-Bold'),
+        ('FONTNAME', (0,0), (0,0), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 12),
+        ('BOTTOMPADDING', (0,0), (0,0), 5),
+        ('TOPPADDING', (0,1), (0,1), 5),
+    ]))
+    
+    story.append(tabla_cobrador)
+    story.append(Spacer(1, 30))
+    
+    # Nota final
+    nota_titulo = Paragraph("<b>NOTA:</b>", nota_style)
+    story.append(nota_titulo)
+    
+    notas_texto = [
+        "Si cambia de dirección avise al cobrador o a nuestra dirección",
+        "No se devuelven abonos al recoger la mercadería por estar en",
+        "Mora. No se abre otra cuenta sin cancelar la anterior.",
+        "",
+        "<b>CUANDO HAGA SU ABONO RECLAME SU RECIBO</b>"
+    ]
+    
+    for nota in notas_texto:
+        if nota:  # Si no está vacía
+            nota_para = Paragraph(nota, nota_style)
+            story.append(nota_para)
+        else:
+            story.append(Spacer(1, 6))
+    
+    # Construir PDF
+    doc.build(story)
+    
+    # Obtener el PDF del buffer
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_data
 
 @app.route("/About")
 @Conexion.login_requerido
@@ -317,14 +502,14 @@ def registrar_venta():
 
     if request.method == 'POST':
         id_cliente = request.form['cliente']
-        id_producto = request.form['producto']  # Producto único
+        productos_ids = request.form.getlist('productos')
         direccion = request.form['direccion']
         tipo_pago = request.form['tipo_pago']
         meses = request.form.get('meses', 0)
 
         # Obtener vendedor (usuario actual debe ser vendedor)
         if session.get('rango') != 3:  # Si no es vendedor
-            flash("Solo los vendedores pueden registrar ventas.", "danger")
+            flash("❌ Solo los vendedores pueden registrar ventas.", "danger")
             cursor.close()
             conn.close()
             return redirect(url_for('registrar_venta'))
@@ -334,34 +519,19 @@ def registrar_venta():
         # NO asignar cobrador (dejar como NULL)
         id_cobrador = None
 
-        if not id_producto:
-            flash("Debe seleccionar un producto.", "danger")
+        if not productos_ids:
+            flash("❌ Debe seleccionar al menos un producto.", "danger")
             cursor.close()
             conn.close()
             return redirect(url_for('registrar_venta'))
 
-        # Obtener información del producto único
-        cursor.execute("SELECT id_product, precio, stock FROM producto WHERE id_product = %s", (id_producto,))
-        producto = cursor.fetchone()
+        # Obtener precios de los productos
+        format_strings = ','.join(['%s'] * len(productos_ids))
+        cursor.execute(f"SELECT id_product, precio FROM producto WHERE id_product IN ({format_strings})", tuple(productos_ids))
+        productos = cursor.fetchall()
 
-        if not producto:
-            flash("Producto no encontrado.", "danger")
-            cursor.close()
-            conn.close()
-            return redirect(url_for('registrar_venta'))
-
-        precio_base = float(producto[1])
-        stock_disponible = int(producto[2])
-        cantidad = int(request.form.get('cantidad', 1))
-
-        if cantidad <= 0:
-            flash("La cantidad debe ser mayor a 0.", "danger")
-            cursor.close()
-            conn.close()
-            return redirect(url_for('registrar_venta'))
-
-        if cantidad > stock_disponible:
-            flash(f"Stock insuficiente. Disponible: {stock_disponible}", "danger")
+        if len(productos) != len(productos_ids):
+            flash("❌ Algunos productos seleccionados no fueron encontrados.", "danger")
             cursor.close()
             conn.close()
             return redirect(url_for('registrar_venta'))
@@ -370,55 +540,58 @@ def registrar_venta():
         hora = datetime.today().strftime('%H:%M:%S')
 
         try:
-            # Configurar según tipo de pago
-            subtotal = precio_base * cantidad
-            es_credito = 0 if tipo_pago == 'contado' else 1
-            cuotas = 1
-            interes_aplicado = 0.0
-            total = subtotal
-            precio_mensual = total
-
-            if tipo_pago == 'credito':
-                if not meses or meses == '0':
-                    flash("Debe seleccionar un plazo para pago a crédito.", "danger")
-                    cursor.close()
-                    conn.close()
-                    return redirect(url_for('registrar_venta'))
-
-                cuotas = int(meses)
-                cursor.execute("SELECT porcentaje FROM intereses WHERE meses = %s", (meses,))
-                interes_result = cursor.fetchone()
+            # Insertar una factura por cada producto
+            for producto in productos:
+                id_producto = producto[0]
+                precio_base = float(producto[1])
                 
-                if not interes_result:
-                    flash(f"No se encontró configuración de interés para {meses} meses.", "danger")
-                    cursor.close()
-                    conn.close()
-                    return redirect(url_for('registrar_venta'))
+                # Configurar según tipo de pago
+                es_credito = 0 if tipo_pago == 'contado' else 1
+                cuotas = 1
+                interes_aplicado = 0.0
+                total = precio_base
+                precio_mensual = total
 
-                interes_aplicado = float(interes_result[0])
-                total = subtotal * (1 + interes_aplicado / 100)
-                precio_mensual = total / cuotas
+                if tipo_pago == 'credito':
+                    if not meses or meses == '0':
+                        flash("❌ Debe seleccionar un plazo para pago a crédito.", "danger")
+                        conn.rollback()
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('registrar_venta'))
 
-            # Insertar factura
-            cursor.execute("""
-                INSERT INTO factura_venta
-                (id_cliente, id_cobrador, id_vendedor, id_product, interes_aplicado, es_credito,
-                 estado_pago, monto_abonado, total, cuotas, precio_mensual, fecha, hora, direccion, cantidad)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                id_cliente, id_cobrador, id_vendedor, id_producto, interes_aplicado, es_credito,
-                'pendiente', 0.0, total, cuotas, precio_mensual, fecha, hora, direccion, cantidad
-            ))
+                    cuotas = int(meses)
+                    cursor.execute("SELECT porcentaje FROM intereses WHERE meses = %s", (meses,))
+                    interes_result = cursor.fetchone()
+                    
+                    if not interes_result:
+                        flash(f"❌ No se encontró configuración de interés para {meses} meses.", "danger")
+                        conn.rollback()
+                        cursor.close()
+                        conn.close()
+                        return redirect(url_for('registrar_venta'))
 
-            # Actualizar stock
-            cursor.execute("UPDATE producto SET stock = stock - %s WHERE id_product = %s", (cantidad, id_producto))
+                    interes_aplicado = float(interes_result[0])
+                    total = precio_base * (1 + interes_aplicado / 100)
+                    precio_mensual = total / cuotas
+
+                # Insertar factura con los nombres de columnas correctos
+                cursor.execute("""
+                    INSERT INTO factura_venta
+                    (id_cliente, id_cobrador, id_vendedor, id_product, interes_aplicado, es_credito,
+                     estado_pago, monto_abonado, total, cuotas, precio_mensual, fecha, hora, direccion)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    id_cliente, id_cobrador, id_vendedor, id_producto, interes_aplicado, es_credito,
+                    'pendiente', 0.0, total, cuotas, precio_mensual, fecha, hora, direccion
+                ))
 
             conn.commit()
-            flash("Venta registrada exitosamente.", "success")
+            flash(f"✅ Venta registrada exitosamente con {len(productos)} producto(s).", "success")
             
         except Exception as e:
             conn.rollback()
-            flash(f"Error al registrar la venta: {str(e)}", "danger")
+            flash(f"❌ Error al registrar la venta: {str(e)}", "danger")
             print(f"Error detallado en registrar_venta: {e}")
             
         finally:
@@ -432,19 +605,19 @@ def registrar_venta():
         cursor.execute("SELECT id, nombre, apellido FROM usuarios WHERE id_rango = 2 AND estado = 1")
         clientes = cursor.fetchall()
         
-        cursor.execute("SELECT id_product, nombre, precio, stock FROM producto WHERE stock > 0")
+        cursor.execute("SELECT id_product, nombre, precio FROM producto WHERE stock > 0")
         productos = cursor.fetchall()
         
         cursor.execute("SELECT meses, porcentaje FROM intereses ORDER BY meses")
         opciones_credito = cursor.fetchall()
 
         return render_template("registrar_venta.html", 
-                            clientes=clientes, 
-                            productos=productos, 
-                            opciones_credito=opciones_credito)
-            
+                             clientes=clientes, 
+                             productos=productos, 
+                             opciones_credito=opciones_credito)
+                             
     except Exception as e:
-        flash(f"Error al cargar datos: {str(e)}", "danger")
+        flash(f"❌ Error al cargar datos: {str(e)}", "danger")
         print(f"Error al cargar datos: {e}")
         return redirect(url_for('home'))
     finally:
@@ -630,7 +803,6 @@ def cobros():
                 fv.id_factura_venta,
                 fv.fecha AS fecha_venta,
                 fv.total,
-                fv.cantidad,
                 CASE WHEN fv.es_credito = 1 THEN 'Crédito' ELSE 'Contado' END AS tipo_pago,
                 fv.precio_mensual,
                 fv.estado_pago,
@@ -703,7 +875,6 @@ def detalle_cobro(factura_id):
                 fv.estado_pago,
                 fv.es_credito,
                 fv.interes_aplicado,
-                fv.cantidad,
                 COALESCE(fv.monto_abonado, 0) AS monto_abonado,
                 (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
                 cli.id AS cliente_id,
@@ -1032,7 +1203,6 @@ def mis_compras():
                 fv.estado_pago,
                 fv.cuotas,
                 fv.precio_mensual,
-                fv.cantidad,
                 COALESCE(fv.monto_abonado, 0) AS monto_abonado,
                 (fv.total - COALESCE(fv.monto_abonado, 0)) AS saldo_pendiente,
                 p.nombre AS producto_nombre,
@@ -1100,7 +1270,6 @@ def detalle_compra(factura_id):
                 fv.cuotas,
                 fv.precio_mensual,
                 fv.interes_aplicado,
-                fv.cantidad,
                 fv.direccion,
                 CAST(COALESCE(fv.monto_abonado, 0) AS DECIMAL(10,2)) AS monto_abonado,
                 CAST((fv.total - COALESCE(fv.monto_abonado, 0)) AS DECIMAL(10,2)) AS saldo_pendiente,
@@ -1246,10 +1415,199 @@ def verificar_mes_abono():
         conn.close()
 
 
+@app.route('/generar_recibo/<int:abono_id>')
+@Conexion.login_requerido
+def generar_recibo(abono_id):
+    """Genera y descarga el recibo PDF de un abono específico"""
+    if session.get('rango') not in [2, 4]:  # Cliente o cobrador
+        flash("Acceso denegado.", "danger")
+        return redirect('/home')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Obtener información del abono
+        cursor.execute("""
+            SELECT 
+                av.id_abono,
+                av.monto_abonado,
+                av.fecha,
+                av.saldo_pendiente,
+                av.mes_correspondiente,
+                av.año_correspondiente,
+                fv.total,
+                fv.id_factura_venta,
+                cli.nombre AS cliente_nombre,
+                cli.apellido AS cliente_apellido,
+                cob.nombre AS cobrador_nombre,
+                cob.apellido AS cobrador_apellido
+            FROM abono_venta av
+            JOIN factura_venta fv ON av.id_factura_venta = fv.id_factura_venta
+            JOIN usuarios cli ON fv.id_cliente = cli.id
+            LEFT JOIN usuarios cob ON fv.id_cobrador = cob.id
+            WHERE av.id_abono = %s
+        """, (abono_id,))
+        
+        abono = cursor.fetchone()
+        
+        if not abono:
+            flash("Abono no encontrado.", "danger")
+            return redirect('/home')
+        
+        # Verificar permisos
+        if session.get('rango') == 2:  # Cliente
+            # Verificar que el abono pertenece al cliente logueado
+            cursor.execute("""
+                SELECT COUNT(*) as count FROM abono_venta av
+                JOIN factura_venta fv ON av.id_factura_venta = fv.id_factura_venta
+                WHERE av.id_abono = %s AND fv.id_cliente = %s
+            """, (abono_id, session['user_id']))
+            
+            if cursor.fetchone()['count'] == 0:
+                flash("No tienes acceso a este recibo.", "danger")
+                return redirect('/mis_compras')
+                
+        elif session.get('rango') == 4:  # Cobrador
+            # Verificar que el abono pertenece a una venta del cobrador
+            cursor.execute("""
+                SELECT COUNT(*) as count FROM abono_venta av
+                JOIN factura_venta fv ON av.id_factura_venta = fv.id_factura_venta
+                WHERE av.id_abono = %s AND fv.id_cobrador = %s
+            """, (abono_id, session['user_id']))
+            
+            if cursor.fetchone()['count'] == 0:
+                flash("No tienes acceso a este recibo.", "danger")
+                return redirect('/cobros')
+        
+        # Preparar datos para el PDF
+        abono_data = {
+            'id_abono': abono['id_abono'],
+            'monto_abonado': float(abono['monto_abonado']),
+            'fecha': abono['fecha'],
+            'saldo_pendiente': float(abono['saldo_pendiente']),
+            'total_factura': float(abono['total']),
+            'cliente_nombre': f"{abono['cliente_nombre']} {abono['cliente_apellido'] or ''}".strip(),
+            'cobrador_nombre': f"{abono['cobrador_nombre'] or 'Sin asignar'} {abono['cobrador_apellido'] or ''}".strip()
+        }
+        
+        # Generar PDF
+        pdf_data = generar_recibo_pdf(abono_data)
+        
+        # Crear respuesta HTTP
+        
+        response = Response(pdf_data, mimetype='application/pdf')
+        response.headers['Content-Disposition'] = f'attachment; filename=recibo_abono_{abono_id}.pdf'
+        
+        return response
+        
+    except Exception as e:
+        print(f"ERROR en generar_recibo: {str(e)}")
+        flash(f"Error al generar recibo: {str(e)}", "danger")
+        return redirect('/home')
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ================================
+# TAMBIÉN AGREGA ESTA RUTA PARA VER EL PDF EN EL NAVEGADOR
+# ================================
+
+@app.route('/ver_recibo/<int:abono_id>')
+@Conexion.login_requerido  
+def ver_recibo(abono_id):
+    """Muestra el recibo PDF en el navegador sin descargar"""
+    if session.get('rango') not in [2, 4]:
+        flash("Acceso denegado.", "danger")
+        return redirect('/home')
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Misma lógica de verificación que generar_recibo
+        cursor.execute("""
+            SELECT 
+                av.id_abono,
+                av.monto_abonado,
+                av.fecha,
+                av.saldo_pendiente,
+                fv.total,
+                cli.nombre AS cliente_nombre,
+                cli.apellido AS cliente_apellido,
+                cob.nombre AS cobrador_nombre,
+                cob.apellido AS cobrador_apellido
+            FROM abono_venta av
+            JOIN factura_venta fv ON av.id_factura_venta = fv.id_factura_venta
+            JOIN usuarios cli ON fv.id_cliente = cli.id
+            LEFT JOIN usuarios cob ON fv.id_cobrador = cob.id
+            WHERE av.id_abono = %s
+        """, (abono_id,))
+        
+        abono = cursor.fetchone()
+        if not abono:
+            flash("Abono no encontrado.", "danger")
+            return redirect('/home')
+        
+        # Verificar permisos (misma lógica que generar_recibo)
+        if session.get('rango') == 2:
+            cursor.execute("""
+                SELECT COUNT(*) as count FROM abono_venta av
+                JOIN factura_venta fv ON av.id_factura_venta = fv.id_factura_venta
+                WHERE av.id_abono = %s AND fv.id_cliente = %s
+            """, (abono_id, session['user_id']))
+            
+            if cursor.fetchone()['count'] == 0:
+                flash("No tienes acceso a este recibo.", "danger")
+                return redirect('/mis_compras')
+                
+        elif session.get('rango') == 4:
+            cursor.execute("""
+                SELECT COUNT(*) as count FROM abono_venta av
+                JOIN factura_venta fv ON av.id_factura_venta = fv.id_factura_venta
+                WHERE av.id_abono = %s AND fv.id_cobrador = %s
+            """, (abono_id, session['user_id']))
+            
+            if cursor.fetchone()['count'] == 0:
+                flash("No tienes acceso a este recibo.", "danger")
+                return redirect('/cobros')
+        
+        # Preparar datos y generar PDF
+        abono_data = {
+            'id_abono': abono['id_abono'],
+            'monto_abonado': float(abono['monto_abonado']),
+            'fecha': abono['fecha'],
+            'saldo_pendiente': float(abono['saldo_pendiente']),
+            'total_factura': float(abono['total']),
+            'cliente_nombre': f"{abono['cliente_nombre']} {abono['cliente_apellido'] or ''}".strip(),
+            'cobrador_nombre': f"{abono['cobrador_nombre'] or 'Sin asignar'} {abono['cobrador_apellido'] or ''}".strip()
+        }
+        
+        pdf_data = generar_recibo_pdf(abono_data)
+        
+        # Mostrar en navegador
+        response = Response(pdf_data, mimetype='application/pdf')
+        response.headers['Content-Disposition'] = f'inline; filename=recibo_abono_{abono_id}.pdf'
+        
+        return response
+        
+    except Exception as e:
+        print(f"ERROR en ver_recibo: {str(e)}")
+        flash(f"Error al mostrar recibo: {str(e)}", "danger")
+        return redirect('/home')
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
 
 # ------------------------
 # Run
 # ------------------------
 if __name__ == "__main__":
     print("Flask está listo para correr")
-    app.run(debug=True) 
+    app.run(debug=True)
