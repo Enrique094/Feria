@@ -65,7 +65,7 @@
         <div class="compra-card {{ compra.estado_pago }}" data-estado="{{ compra.estado_pago }}" data-tipo="{{ 'credito' if compra.es_credito else 'contado' }}">
             <div class="compra-header">
                 <div class="compra-info">
-                    <h3>{{ compra.producto_nombre }}</h3>
+                    <h3>{{ compra.producto_nombre }}{% if compra.cantidad > 1 %} <span class="cantidad-badge">x{{ compra.cantidad }}</span>{% endif %}</h3>
                     <p class="fecha">📅 {{ compra.fecha_compra.strftime('%d/%m/%Y') if compra.fecha_compra.strftime else compra.fecha_compra }}</p>
                     <span class="factura-num">Factura #{{ compra.id_factura_venta }}</span>
                 </div>
@@ -80,6 +80,10 @@
             </div>
             
             <div class="compra-detalles">
+                <div class="detalle-item">
+                    <span class="label">Producto:</span>
+                    <span class="valor">{{ compra.producto_nombre }}{% if compra.cantidad > 1 %} (x{{ compra.cantidad }}){% endif %}</span>
+                </div>
                 <div class="detalle-item">
                     <span class="label">Total:</span>
                     <span class="valor total">${{ "%.2f"|format(compra.total) }}</span>
