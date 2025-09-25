@@ -13,7 +13,6 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from flask import Response
-
 app = Flask(__name__)
 app.secret_key = 'Quemen el ina'
 
@@ -44,8 +43,6 @@ def to_float(value):
         except ValueError:
             return 0.0
     return float(value) if value is not None else 0.0
-
-
 
 def generar_tabla_meses(fecha_inicio, total_cuotas, precio_mensual, historial_abonos):
     """Genera una tabla de meses mostrando estado de pagos"""
