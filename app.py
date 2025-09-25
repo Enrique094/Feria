@@ -11,20 +11,18 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from flask import Response
-
 
 app = Flask(__name__)
 app.secret_key = 'Quemen el ina'
 
 def get_connection():
     return mysql.connector.connect(
-        host='Enrique109.mysql.pythonanywhere-services.com',
-        user='Enrique109',
-        password='BM 10969',
-        database='Enrique109$default'
+        host='localhost',
+        user='root',
+        password='',
+        database='Gestor'
     )
 
 def admin_required(f):
