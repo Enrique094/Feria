@@ -5,6 +5,11 @@ from datetime import datetime
 import mysql.connector
 from functools import wraps
 import io
+<<<<<<< Updated upstream
+=======
+from flask_login import login_required, LoginManager, UserMixin, current_user
+from Funciones import confi
+>>>>>>> Stashed changes
 
 
 app = Flask(__name__)
